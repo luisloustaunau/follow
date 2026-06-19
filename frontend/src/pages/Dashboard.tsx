@@ -22,15 +22,16 @@ export function Dashboard() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Proyectos</h1>
-          <p className="text-sm text-gray-500">{projects.length} contratos activos</p>
+          <h1 className="text-2xl font-bold text-gray-900">Proyectos</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{projects.length} contrato{projects.length !== 1 ? 's' : ''} activo{projects.length !== 1 ? 's' : ''}</p>
         </div>
         {user?.role === 'owner' && (
           <Link
             to="/projects/new"
-            className="flex items-center gap-1.5 bg-red-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+            className="flex items-center gap-2 bg-red-800 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-red-700 transition-all shadow-sm shadow-red-800/20 active:scale-[0.98]"
           >
             <Plus size={15} />
             Nuevo proyecto
@@ -39,52 +40,72 @@ export function Dashboard() {
       </div>
 
       {loading ? (
-        <div className="text-gray-400 text-sm">Cargando...</div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl p-6 animate-pulse">
+              <div className="h-4 bg-gray-100 rounded w-3/4 mb-3" />
+              <div className="h-3 bg-gray-100 rounded w-1/2 mb-6" />
+              <div className="grid grid-cols-2 gap-2">
+                {[...Array(4)].map((_, j) => <div key={j} className="h-8 bg-gray-100 rounded" />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : projects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
+            <Building2 size={28} className="text-red-800" />
+          </div>
+          <p className="text-gray-900 font-semibold">Sin proyectos aún</p>
+          <p className="text-gray-400 text-sm mt-1">Crea el primer proyecto para comenzar</p>
+          {user?.role === 'owner' && (
+            <Link to="/projects/new" className="mt-4 text-sm text-red-800 font-medium hover:underline">
+              + Nuevo proyecto
+            </Link>
+          )}
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
             <Link
               key={p.id}
               to={`/projects/${p.id}`}
-              className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow group"
+              className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-lg hover:shadow-gray-200/60 hover:-translate-y-0.5 transition-all group"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="bg-red-50 p-2 rounded-lg">
-                    <Building2 size={18} className="text-red-800" />
+                  <div className="bg-red-800 p-2.5 rounded-xl">
+                    <Building2 size={16} className="text-white" />
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900 text-sm leading-snug">{p.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{p.contractNo}</p>
+                    <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{p.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 font-mono">{p.contractNo}</p>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 transition-colors mt-1" />
+                <ChevronRight size={15} className="text-gray-200 group-hover:text-red-800 transition-colors mt-1 shrink-0" />
               </div>
-              <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <p className="text-gray-400">Contratista</p>
-                  <p className="text-gray-700 font-medium truncate">{p.contractor}</p>
-                </div>
+
+              <div className="bg-gray-50 rounded-xl p-3 mb-4">
+                <p className="text-xs text-gray-400 mb-0.5">Contratista</p>
+                <p className="text-sm font-medium text-gray-700 truncate">{p.contractor}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <p className="text-gray-400">Importe c/IVA</p>
-                  <p className="text-gray-700 font-medium">{fmt(p.amountWithIVA)}</p>
+                  <p className="font-semibold text-green-700 mt-0.5">{fmt(p.amountWithIVA)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400">Duración</p>
+                  <p className="font-semibold text-gray-700 mt-0.5">{p.durationDays} días</p>
                 </div>
                 <div>
                   <p className="text-gray-400">Inicio</p>
-                  <p className="text-gray-700">{p.startDate}</p>
+                  <p className="font-medium text-gray-600 mt-0.5">{p.startDate}</p>
                 </div>
                 <div>
                   <p className="text-gray-400">Término</p>
-                  <p className="text-gray-700">{p.endDate}</p>
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="flex justify-between text-xs text-gray-400 mb-1">
-                  <span>Avance programado</span>
-                  <span className="text-blue-600 font-medium">—</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full" style={{ width: '0%' }} />
+                  <p className="font-medium text-gray-600 mt-0.5">{p.endDate}</p>
                 </div>
               </div>
             </Link>
