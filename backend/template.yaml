@@ -1,0 +1,155 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: ANMA Supervisión de Obras — Backend
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 10
+    MemorySize: 256
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref MainTable
+        JWT_SECRET: !Ref JwtSecret
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+
+Parameters:
+  JwtSecret:
+    Type: String
+    Default: 'change-me-in-production'
+    NoEcho: true
+
+Resources:
+  # ── DynamoDB ────────────────────────────────────────────────
+  MainTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: anma-follow
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: GSI1PK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - AttributeName: GSI1PK
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  # ── Photo bucket ────────────────────────────────────────────
+  PhotosBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'anma-photos-${AWS::AccountId}'
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST]
+            AllowedOrigins: ['*']
+
+  # ── Lambda functions ────────────────────────────────────────
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/handlers/auth.handler
+      Events:
+        Login:
+          Type: Api
+          Properties:
+            Path: /auth/{proxy+}
+            Method: ANY
+
+  ProjectsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/handlers/projects.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        Projects:
+          Type: Api
+          Properties:
+            Path: /projects
+            Method: ANY
+        ProjectById:
+          Type: Api
+          Properties:
+            Path: /projects/{projectId}
+            Method: ANY
+
+  FrontsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/handlers/fronts.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        Fronts:
+          Type: Api
+          Properties:
+            Path: /projects/{projectId}/fronts
+            Method: ANY
+        FrontById:
+          Type: Api
+          Properties:
+            Path: /projects/{projectId}/fronts/{frontId}
+            Method: ANY
+
+  ReportsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/handlers/reports.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        Reports:
+          Type: Api
+          Properties:
+            Path: /fronts/{frontId}/reports
+            Method: ANY
+        ReportById:
+          Type: Api
+          Properties:
+            Path: /fronts/{frontId}/reports/{reportId}
+            Method: ANY
+
+  EstimationsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/handlers/estimations.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        Estimations:
+          Type: Api
+          Properties:
+            Path: /projects/{projectId}/estimations
+            Method: ANY
+        EstimationById:
+          Type: Api
+          Properties:
+            Path: /projects/{projectId}/estimations/{estId}
+            Method: ANY
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
+  TableName:
+    Value: !Ref MainTable
+  BucketName:
+    Value: !Ref PhotosBucket

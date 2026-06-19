@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+dist/
+**/dist/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.production
+
+# AWS SAM
+backend/.aws-sam/
+backend/samconfig.toml
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
