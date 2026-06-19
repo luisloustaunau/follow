@@ -3,7 +3,9 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
+import { NewProject } from './pages/NewProject';
 import { ProjectDetail } from './pages/ProjectDetail';
+import { NewFront } from './pages/NewFront';
 import { FrontDetail } from './pages/FrontDetail';
 import { NewReport } from './pages/NewReport';
 import { Estimations } from './pages/Estimations';
@@ -27,7 +29,10 @@ export default function App() {
             }
           >
             <Route path="/" element={<Dashboard />} />
+            <Route path="/projects/new" element={<NewProject />} />
             <Route path="/projects/:projectId" element={<ProjectDetail />} />
+            <Route path="/projects/:projectId/fronts/new" element={<NewFront />} />
+            <Route path="/projects/:projectId/fronts/:frontId" element={<FrontDetail />} />
             <Route path="/projects/:projectId/fronts/:frontId" element={<FrontDetail />} />
             <Route path="/projects/:projectId/fronts/:frontId/reports/new" element={<NewReport />} />
             <Route path="/projects/:projectId/estimations" element={<Estimations />} />
