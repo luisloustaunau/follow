@@ -62,24 +62,24 @@ export function Estimations() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-        <Link to="/" className="hover:text-gray-600">Proyectos</Link>
+      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+        <Link to="/" className="hover:text-gray-700 transition-colors">Proyectos</Link>
         <ChevronRight size={14} />
-        <Link to={`/projects/${projectId}`} className="hover:text-gray-600">Proyecto</Link>
+        <Link to={`/projects/${projectId}`} className="hover:text-gray-700 transition-colors">Proyecto</Link>
         <ChevronRight size={14} />
-        <span className="text-gray-700">Estimaciones</span>
+        <span className="text-gray-700 font-medium">Estimaciones</span>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'Total programado', value: fmt(totalProgramado), color: 'text-blue-700' },
-          { label: 'Total cobrado', value: fmt(totalPagado), color: 'text-green-700' },
-          { label: 'Por cobrar', value: fmt(totalProgramado - totalPagado), color: 'text-amber-700' },
+          { label: 'Total programado', value: fmt(totalProgramado), color: 'text-blue-700', bg: 'bg-blue-50', border: 'border-blue-100' },
+          { label: 'Total cobrado', value: fmt(totalPagado), color: 'text-green-700', bg: 'bg-green-50', border: 'border-green-100' },
+          { label: 'Por cobrar', value: fmt(totalProgramado - totalPagado), color: 'text-amber-700', bg: 'bg-amber-50', border: 'border-amber-100' },
         ].map((s) => (
-          <div key={s.label} className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-xs text-gray-400">{s.label}</p>
-            <p className={`text-lg font-bold ${s.color} mt-1`}>{s.value}</p>
+          <div key={s.label} className={`${s.bg} border ${s.border} rounded-2xl p-5`}>
+            <p className="text-xs font-medium text-gray-500 mb-1">{s.label}</p>
+            <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -87,58 +87,55 @@ export function Estimations() {
       {loading ? (
         <div className="text-sm text-gray-400">Cargando...</div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                {['No.', 'Periodo', 'Importe', 'Deducción', 'Con IVA', 'Líquido', 'Factura', 'Fecha pago', 'Status', canEdit ? 'Acción' : ''].map((h) => (
-                  <th key={h} className="text-left text-xs font-semibold text-gray-500 px-4 py-3">{h}</th>
+              <tr className="border-b border-gray-100">
+                {['No.', 'Periodo', 'Importe', 'Deducción', 'Con IVA', 'Líquido', 'Factura', 'Fecha pago', 'Status', canEdit ? 'Acción' : ''].filter(Boolean).map((h) => (
+                  <th key={h} className="text-left text-xs font-semibold text-gray-400 uppercase tracking-wide px-4 py-3.5 bg-gray-50/50">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-gray-50">
               {estimations.map((est) => (
-                <tr key={est.id} className={editId === est.id ? 'bg-blue-50' : 'hover:bg-gray-50'}>
-                  <td className="px-4 py-3 font-medium text-gray-700">{est.estimationNo}</td>
-                  <td className="px-4 py-3 text-gray-600">{est.period}</td>
-                  <td className="px-4 py-3 text-gray-700">{fmt(est.amount)}</td>
-                  <td className="px-4 py-3 text-red-600">{est.deductions > 0 ? fmt(est.deductions) : '—'}</td>
-                  <td className="px-4 py-3 font-medium">{fmt(est.amountWithIVA)}</td>
-                  <td className="px-4 py-3 text-green-700 font-medium">{fmt(est.liquid)}</td>
+                <tr key={est.id} className={`transition-colors ${editId === est.id ? 'bg-blue-50/50' : 'hover:bg-gray-50/50'}`}>
+                  <td className="px-4 py-3.5 font-semibold text-gray-700">{est.estimationNo}</td>
+                  <td className="px-4 py-3.5 text-gray-600">{est.period}</td>
+                  <td className="px-4 py-3.5 text-gray-700">{fmt(est.amount)}</td>
+                  <td className="px-4 py-3.5 text-red-500">{est.deductions > 0 ? fmt(est.deductions) : <span className="text-gray-300">—</span>}</td>
+                  <td className="px-4 py-3.5 font-medium text-gray-800">{fmt(est.amountWithIVA)}</td>
+                  <td className="px-4 py-3.5 font-semibold text-green-700">{fmt(est.liquid)}</td>
 
-                  {/* Editable: Factura */}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     {editId === est.id ? (
                       <input
-                        className="border border-gray-300 rounded px-2 py-1 text-xs w-24 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs w-28 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                         value={editData.invoiceNo ?? ''}
                         onChange={(e) => setEditData((d) => ({ ...d, invoiceNo: e.target.value }))}
                         placeholder="No. factura"
                       />
                     ) : (
-                      <span className="text-gray-600">{est.invoiceNo || '—'}</span>
+                      <span className="text-gray-600 font-mono text-xs">{est.invoiceNo || <span className="text-gray-300">—</span>}</span>
                     )}
                   </td>
 
-                  {/* Editable: Fecha pago */}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     {editId === est.id ? (
                       <input
                         type="date"
-                        className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                         value={editData.paidDate ?? ''}
                         onChange={(e) => setEditData((d) => ({ ...d, paidDate: e.target.value }))}
                       />
                     ) : (
-                      <span className="text-gray-600">{est.paidDate || '—'}</span>
+                      <span className="text-gray-600 text-xs">{est.paidDate || <span className="text-gray-300">—</span>}</span>
                     )}
                   </td>
 
-                  {/* Editable: Status */}
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     {editId === est.id ? (
                       <select
-                        className="border border-gray-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                         value={editData.status}
                         onChange={(e) => setEditData((d) => ({ ...d, status: e.target.value as EstimationStatus }))}
                       >
@@ -150,20 +147,20 @@ export function Estimations() {
                   </td>
 
                   {canEdit && (
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3.5">
                       {editId === est.id ? (
                         <button
                           onClick={() => saveEdit(est)}
                           disabled={saving}
-                          className="flex items-center gap-1 text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1 text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 font-medium"
                         >
-                          <Save size={12} />
+                          <Save size={11} />
                           {saving ? '...' : 'Guardar'}
                         </button>
                       ) : (
                         <button
                           onClick={() => startEdit(est)}
-                          className="text-xs text-blue-600 hover:underline"
+                          className="text-xs text-gray-400 hover:text-blue-600 font-medium transition-colors"
                         >
                           Editar
                         </button>

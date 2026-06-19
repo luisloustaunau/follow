@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getProject, getFronts } from '../lib/api';
 import type { Project, Front } from '../types';
-import { ChevronRight, MapPin, Plus } from 'lucide-react';
+import { ChevronRight, MapPin, Plus, Building2 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 function fmt(n: number) {
@@ -29,66 +29,57 @@ export function ProjectDetail() {
   return (
     <div>
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-400 mb-4">
-        <Link to="/" className="hover:text-gray-600">Proyectos</Link>
+      <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
+        <Link to="/" className="hover:text-gray-700 transition-colors">Proyectos</Link>
         <ChevronRight size={14} />
-        <span className="text-gray-700">{project.name}</span>
+        <span className="text-gray-700 font-medium">{project.name}</span>
       </div>
 
-      {/* Header */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-        <h1 className="font-bold text-gray-900 text-lg mb-4">{project.name}</h1>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-gray-400 text-xs">No. Contrato</p>
-            <p className="font-medium">{project.contractNo}</p>
+      {/* Header card */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-6 mb-6 shadow-sm">
+        <div className="flex items-start gap-4 mb-6">
+          <div className="bg-red-800 p-3 rounded-xl shrink-0">
+            <Building2 size={20} className="text-white" />
           </div>
           <div>
-            <p className="text-gray-400 text-xs">Contratista</p>
-            <p className="font-medium">{project.contractor}</p>
+            <h1 className="font-bold text-gray-900 text-lg leading-snug">{project.name}</h1>
+            <p className="text-sm text-gray-400 font-mono mt-0.5">{project.contractNo}</p>
           </div>
-          <div>
-            <p className="text-gray-400 text-xs">Importe con IVA</p>
-            <p className="font-medium text-green-700">{fmt(project.amountWithIVA)}</p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-xs">Duración</p>
-            <p className="font-medium">{project.durationDays} días naturales</p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-xs">Inicio</p>
-            <p className="font-medium">{project.startDate}</p>
-          </div>
-          <div>
-            <p className="text-gray-400 text-xs">Término</p>
-            <p className="font-medium">{project.endDate}</p>
-          </div>
-          {project.advance !== undefined && (
-            <div>
-              <p className="text-gray-400 text-xs">Anticipo</p>
-              <p className="font-medium">{project.advance > 0 ? fmt(project.advance) : 'No hubo'}</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Contratista', value: project.contractor },
+            { label: 'Importe con IVA', value: fmt(project.amountWithIVA), highlight: 'text-green-700' },
+            { label: 'Duración', value: `${project.durationDays} días naturales` },
+            { label: 'Anticipo', value: project.advance && project.advance > 0 ? fmt(project.advance) : 'No hubo' },
+            { label: 'Inicio', value: project.startDate },
+            { label: 'Término', value: project.endDate },
+          ].map((item) => (
+            <div key={item.label} className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-400 mb-1">{item.label}</p>
+              <p className={`text-sm font-semibold ${item.highlight ?? 'text-gray-800'}`}>{item.value}</p>
             </div>
-          )}
+          ))}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-4 mb-4 border-b border-gray-200">
+      {/* Quick links */}
+      <div className="flex gap-3 mb-6">
         <Link
           to={`/projects/${projectId}/estimations`}
-          className="pb-2 text-sm font-medium text-gray-500 hover:text-gray-900 border-b-2 border-transparent hover:border-gray-300 transition-colors"
+          className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:border-red-800 hover:text-red-800 transition-all shadow-sm"
         >
-          Estimaciones
+          Ver estimaciones →
         </Link>
       </div>
 
       {/* Fronts */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-gray-800">Frentes de trabajo</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-bold text-gray-900">Frentes de trabajo</h2>
         {user?.role === 'owner' && (
           <Link
             to={`/projects/${projectId}/fronts/new`}
-            className="flex items-center gap-1 text-sm text-red-800 hover:underline"
+            className="flex items-center gap-1.5 text-sm font-medium text-red-800 hover:underline"
           >
             <Plus size={14} />
             Agregar frente
@@ -100,22 +91,25 @@ export function ProjectDetail() {
           <Link
             key={f.id}
             to={`/projects/${projectId}/fronts/${f.id}`}
-            className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow group flex items-center justify-between"
+            className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:-translate-y-0.5 transition-all group flex items-center justify-between shadow-sm"
           >
             <div className="flex items-center gap-3">
-              <div className="bg-blue-50 p-2 rounded-lg">
-                <MapPin size={16} className="text-blue-600" />
+              <div className="bg-blue-600 p-2.5 rounded-xl">
+                <MapPin size={15} className="text-white" />
               </div>
               <div>
-                <p className="font-medium text-sm text-gray-900">{f.name}</p>
-                {f.location && <p className="text-xs text-gray-400">{f.location}</p>}
+                <p className="font-semibold text-sm text-gray-900">{f.name}</p>
+                {f.location && <p className="text-xs text-gray-400 mt-0.5">{f.location}</p>}
               </div>
             </div>
-            <ChevronRight size={16} className="text-gray-300 group-hover:text-gray-500 transition-colors" />
+            <ChevronRight size={15} className="text-gray-200 group-hover:text-red-800 transition-colors" />
           </Link>
         ))}
         {fronts.length === 0 && (
-          <p className="text-sm text-gray-400 col-span-2">Sin frentes registrados.</p>
+          <div className="col-span-2 flex flex-col items-center py-12 text-center bg-white rounded-2xl border border-gray-100">
+            <MapPin size={24} className="text-gray-200 mb-2" />
+            <p className="text-sm text-gray-400">Sin frentes registrados</p>
+          </div>
         )}
       </div>
     </div>
