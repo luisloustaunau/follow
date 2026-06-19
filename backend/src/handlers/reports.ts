@@ -7,7 +7,7 @@ import { ok, created, unauthorized, serverError, badRequest } from '../lib/respo
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   try {
     if (event.httpMethod === 'OPTIONS') return ok({});
-
+//
     const user = extractToken(event.headers?.Authorization ?? event.headers?.authorization);
     if (!user) return unauthorized();
 
