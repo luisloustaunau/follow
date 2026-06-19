@@ -62,6 +62,9 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: dist/handlers/auth.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
       Events:
         Login:
           Type: Api
