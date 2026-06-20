@@ -25,22 +25,22 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 bg-red-800 rounded-2xl mb-4">
-            <span className="text-white text-xl font-bold">A</span>
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-10 h-10 bg-red-800 rounded-lg mb-3">
+            <span className="text-white text-base font-bold">A</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">ANMA Ingeniería</h1>
-          <p className="text-gray-400 text-sm mt-1">Supervisión de obras</p>
+          <h1 className="text-xl font-bold text-gray-900">ANMA Ingeniería</h1>
+          <p className="text-gray-400 text-sm mt-0.5">Supervisión de obras</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-white rounded-xl shadow border border-gray-200 p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
                 Correo electrónico
               </label>
               <input
@@ -49,13 +49,13 @@ export function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-800/20 focus:border-red-800 transition-all placeholder-gray-300"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-800/20 focus:border-red-700 transition-all placeholder-gray-300"
                 placeholder="correo@ejemplo.com"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              <label className="block text-xs font-semibold text-gray-600 mb-1 uppercase tracking-wide">
                 Contraseña
               </label>
               <input
@@ -64,12 +64,12 @@ export function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-800/20 focus:border-red-800 transition-all"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-800/20 focus:border-red-700 transition-all"
               />
             </div>
 
             {error && (
-              <p className="text-red-600 text-sm bg-red-50 border border-red-100 rounded-xl px-4 py-2.5">
+              <p className="text-red-600 text-xs bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                 {error}
               </p>
             )}
@@ -77,7 +77,7 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-red-800 text-white py-3 rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
+              className="w-full bg-red-800 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 mt-1"
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </button>

@@ -70,27 +70,27 @@ export function Dashboard() {
             <Link
               key={p.id}
               to={`/projects/${p.id}`}
-              className="bg-white border border-gray-100 rounded-2xl p-6 hover:shadow-lg hover:shadow-gray-200/60 hover:-translate-y-0.5 transition-all group"
+              className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md hover:-translate-y-px transition-all group"
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className="bg-red-800 p-2.5 rounded-xl">
-                    <Building2 size={16} className="text-white" />
+                  <div className="bg-red-800 p-2 rounded-lg shrink-0">
+                    <Building2 size={15} className="text-white" />
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900 text-sm leading-snug line-clamp-2">{p.name}</p>
                     <p className="text-xs text-gray-400 mt-0.5 font-mono">{p.contractNo}</p>
                   </div>
                 </div>
-                <ChevronRight size={15} className="text-gray-200 group-hover:text-red-800 transition-colors mt-1 shrink-0" />
+                <ChevronRight size={14} className="text-gray-300 group-hover:text-red-800 transition-colors mt-0.5 shrink-0" />
               </div>
 
-              <div className="bg-gray-50 rounded-xl p-3 mb-4">
+              <div className="bg-gray-50 rounded-lg p-2.5 mb-3 border border-gray-100">
                 <p className="text-xs text-gray-400 mb-0.5">Contratista</p>
                 <p className="text-sm font-medium text-gray-700 truncate">{p.contractor}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <p className="text-gray-400">Importe c/IVA</p>
                   <p className="font-semibold text-green-700 mt-0.5">{fmt(p.amountWithIVA)}</p>
