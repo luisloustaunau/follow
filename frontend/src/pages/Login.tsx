@@ -38,7 +38,7 @@ export function Login() {
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 px-8 py-7">
+        <div className="card">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
