@@ -6,12 +6,6 @@
 @import "@fontsource/inter/600.css";
 @import "@fontsource/inter/700.css";
 
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: #f3f4f6;
@@ -19,7 +13,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Guaranteed card style — not subject to Tailwind purging */
+/* Card — plain CSS so it's never purged */
 .card {
   background-color: #ffffff;
   border-radius: 12px;
@@ -28,7 +22,6 @@ body {
   padding: 1.75rem 2rem;
 }
 
-/* Form elements */
 .field {
   display: flex;
   flex-direction: column;
@@ -53,9 +46,7 @@ body {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.input::placeholder {
-  color: #9ca3af;
-}
+.input::placeholder { color: #9ca3af; }
 
 .input:focus {
   border-color: #991b1b;
