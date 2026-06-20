@@ -39,47 +39,39 @@ export function Login() {
 
         {/* Card */}
         <div className="card">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Correo electrónico
-              </label>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div className="field">
+              <label>Correo electrónico</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-800 focus:border-transparent transition-all"
+                className="input"
                 placeholder="correo@ejemplo.com"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contraseña
-              </label>
+            <div className="field">
+              <label>Contraseña</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-red-800 focus:border-transparent transition-all"
+                className="input"
               />
             </div>
 
             {error && (
-              <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              <p style={{ color: '#dc2626', fontSize: '0.8rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px 12px' }}>
                 {error}
               </p>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-red-800 text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-red-700 active:bg-red-900 transition-colors disabled:opacity-50 mt-1 shadow-sm"
-            >
+            <button type="submit" disabled={loading} className="btn-primary">
               {loading ? 'Entrando...' : 'Entrar'}
             </button>
           </form>

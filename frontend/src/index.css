@@ -27,3 +27,54 @@ body {
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
   padding: 1.75rem 2rem;
 }
+
+/* Form elements */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.input {
+  width: 100%;
+  border: 1.5px solid #9ca3af;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.875rem;
+  color: #111827;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input::placeholder {
+  color: #9ca3af;
+}
+
+.input:focus {
+  border-color: #991b1b;
+  box-shadow: 0 0 0 3px rgba(153,27,27,0.12);
+}
+
+.btn-primary {
+  width: 100%;
+  background-color: #991b1b;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  margin-top: 4px;
+}
+
+.btn-primary:hover { background-color: #7f1d1d; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
