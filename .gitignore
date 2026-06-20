@@ -12,7 +12,6 @@ out/
 .env
 .env.local
 .env.*.local
-.env.production
 
 # AWS SAM
 backend/.aws-sam/
