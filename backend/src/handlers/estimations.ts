@@ -159,6 +159,7 @@ export async function handler(
       const item = {
         PK: `PROJECT#${projectId}`,
         SK: `ESTIMATION#${periodMonth}#${id}`,
+        GSI1PK: 'ESTIMATION',
         id,
         projectId,
         estimationNo,

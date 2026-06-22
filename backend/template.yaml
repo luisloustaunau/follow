@@ -216,6 +216,25 @@ Resources:
             Path: /projects/{projectId}/estimations/pdf
             Method: ANY
 
+  GlobalsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/handlers/globals.handler
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+      Events:
+        GlobalReports:
+          Type: Api
+          Properties:
+            Path: /reports
+            Method: ANY
+        GlobalEstimations:
+          Type: Api
+          Properties:
+            Path: /estimations
+            Method: ANY
+
 Outputs:
   ApiUrl:
     Description: API Gateway endpoint

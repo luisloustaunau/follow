@@ -139,6 +139,7 @@ export async function handler(
       const item = {
         PK: `FRONT#${frontId}`,
         SK: `REPORT#${reportDate}`,
+        GSI1PK: 'REPORT',
         id,
         frontId,
         weekNo,

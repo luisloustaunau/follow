@@ -10,6 +10,8 @@ import { FrontDetail } from './pages/FrontDetail';
 import { NewReport } from './pages/NewReport';
 import { ReportDetail } from './pages/ReportDetail';
 import { Estimations } from './pages/Estimations';
+import { AllReports } from './pages/AllReports';
+import { AllEstimations } from './pages/AllEstimations';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -30,6 +32,8 @@ export default function App() {
             }
           >
             <Route path="/" element={<Dashboard />} />
+            <Route path="/reports" element={<AllReports />} />
+            <Route path="/estimations" element={<AllEstimations />} />
             <Route path="/projects/new" element={<NewProject />} />
             <Route path="/projects/:projectId" element={<ProjectDetail />} />
             <Route path="/projects/:projectId/fronts/new" element={<NewFront />} />

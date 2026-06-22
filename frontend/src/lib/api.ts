@@ -145,3 +145,38 @@ export async function uploadPhoto(
   });
   return key;
 }
+
+// ─── Global aggregate views ───────────────────────────────
+export interface EnrichedReport extends WeeklyReport {
+  projectId: string;
+  projectName: string;
+  projectContractNo: string;
+  frontName: string;
+}
+
+export interface FrontStatus {
+  frontId: string;
+  frontName: string;
+  projectId: string;
+  projectName: string;
+  projectContractNo: string;
+  latestReport: EnrichedReport | null;
+  reportCount: number;
+}
+
+export interface EnrichedEstimation extends Estimation {
+  projectName: string;
+  projectContractNo: string;
+  projectContractor: string;
+}
+
+export const getAllReports = (): Promise<{
+  reports: EnrichedReport[];
+  frontStatus: FrontStatus[];
+}> => api.get('/reports').then((r) => r.data);
+
+export const getAllEstimations = (): Promise<{
+  estimations: EnrichedEstimation[];
+  projects: { id: string; name: string; contractNo: string; contractor: string; amountWithIVA: number }[];
+}> => api.get('/estimations').then((r) => r.data);
+
