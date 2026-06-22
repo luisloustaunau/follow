@@ -8,6 +8,7 @@ import { ProjectDetail } from './pages/ProjectDetail';
 import { NewFront } from './pages/NewFront';
 import { FrontDetail } from './pages/FrontDetail';
 import { NewReport } from './pages/NewReport';
+import { ReportDetail } from './pages/ReportDetail';
 import { Estimations } from './pages/Estimations';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -33,8 +34,8 @@ export default function App() {
             <Route path="/projects/:projectId" element={<ProjectDetail />} />
             <Route path="/projects/:projectId/fronts/new" element={<NewFront />} />
             <Route path="/projects/:projectId/fronts/:frontId" element={<FrontDetail />} />
-            <Route path="/projects/:projectId/fronts/:frontId" element={<FrontDetail />} />
             <Route path="/projects/:projectId/fronts/:frontId/reports/new" element={<NewReport />} />
+            <Route path="/projects/:projectId/fronts/:frontId/reports/:reportId" element={<ReportDetail />} />
             <Route path="/projects/:projectId/estimations" element={<Estimations />} />
           </Route>
         </Routes>

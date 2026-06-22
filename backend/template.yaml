@@ -5,11 +5,12 @@ Description: ANMA Supervisión de Obras — Backend
 Globals:
   Function:
     Runtime: nodejs20.x
-    Timeout: 10
-    MemorySize: 256
+    Timeout: 15
+    MemorySize: 512
     Environment:
       Variables:
         TABLE_NAME: !Ref MainTable
+        BUCKET_NAME: !Sub 'anma-photos-${AWS::AccountId}'
         JWT_SECRET: !Ref JwtSecret
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
 
@@ -46,7 +47,7 @@ Resources:
           Projection:
             ProjectionType: ALL
 
-  # ── Photo bucket ────────────────────────────────────────────
+  # ── Photo + PDF bucket ──────────────────────────────────────
   PhotosBucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -54,8 +55,9 @@ Resources:
       CorsConfiguration:
         CorsRules:
           - AllowedHeaders: ['*']
-            AllowedMethods: [GET, PUT, POST]
+            AllowedMethods: [GET, PUT, POST, HEAD]
             AllowedOrigins: ['*']
+            ExposedHeaders: [ETag]
 
   # ── Lambda functions ────────────────────────────────────────
   AuthFunction:
@@ -146,6 +148,72 @@ Resources:
           Type: Api
           Properties:
             Path: /projects/{projectId}/estimations/{estId}
+            Method: ANY
+        EstimationProgram:
+          Type: Api
+          Properties:
+            Path: /projects/{projectId}/estimation-program
+            Method: ANY
+
+  ScheduleFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/handlers/schedule.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        FrontSchedule:
+          Type: Api
+          Properties:
+            Path: /fronts/{frontId}/schedule
+            Method: ANY
+        FrontScheduleScoped:
+          Type: Api
+          Properties:
+            Path: /projects/{projectId}/fronts/{frontId}/schedule
+            Method: ANY
+
+  UploadsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/handlers/uploads.handler
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Sub 'anma-photos-${AWS::AccountId}'
+      Events:
+        UploadUrl:
+          Type: Api
+          Properties:
+            Path: /fronts/{frontId}/upload-url
+            Method: ANY
+        ViewUrl:
+          Type: Api
+          Properties:
+            Path: /uploads/view
+            Method: ANY
+
+  PdfFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dist/handlers/pdf.handler
+      Timeout: 30
+      MemorySize: 1024
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref MainTable
+        - S3CrudPolicy:
+            BucketName: !Sub 'anma-photos-${AWS::AccountId}'
+      Events:
+        ReportPdf:
+          Type: Api
+          Properties:
+            Path: /fronts/{frontId}/reports/{reportId}/pdf
+            Method: ANY
+        EstimationsPdf:
+          Type: Api
+          Properties:
+            Path: /projects/{projectId}/estimations/pdf
             Method: ANY
 
 Outputs:

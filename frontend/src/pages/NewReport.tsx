@@ -1,220 +1,288 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { createReport } from '../lib/api';
-import { ChevronRight, Upload, X } from 'lucide-react';
+import { createReport, getSchedule, getReports } from '../lib/api';
+import type { ScheduleRow, WeeklyReport } from '../types';
+import { PhotoUploader } from '../components/PhotoUploader';
+import { ChevronRight } from 'lucide-react';
 
+function fmt(n: number) {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: 'MXN',
+    minimumFractionDigits: 2,
+  }).format(n);
+}
+
+/**
+ * Simplified weekly report form — supervisor only enters:
+ *   - reportDate (defaults to next pending week)
+ *   - parcial físico ($ this week)
+ *   - parcial financiero ($ this week)
+ *   - description / observations
+ *   - photos
+ *
+ * Everything else (weekNo, acumulados, %s, programado) is computed
+ * server-side on POST.
+ */
 export function NewReport() {
-  const { projectId, frontId } = useParams<{ projectId: string; frontId: string }>();
+  const { projectId, frontId } = useParams<{
+    projectId: string;
+    frontId: string;
+  }>();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    reportDate: '',
-    weekNo: '',
-    progParcialScheduled: '',
-    progAcumScheduled: '',
-    progPctScheduled: '',
-    avanceFisicoReal: '',
-    avanceFisicoRealAcum: '',
-    avanceFisicoPct: '',
-    avanceFinancieroReal: '',
-    avanceFinancieroRealAcum: '',
-    avanceFinancieroPct: '',
-    description: '',
-    observations: '',
-  });
-  const [photos, setPhotos] = useState<File[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
+  const [existingReports, setExistingReports] = useState<WeeklyReport[]>([]);
+  const [loadingCtx, setLoadingCtx] = useState(true);
+
+  const [reportDate, setReportDate] = useState('');
+  const [parcialFisico, setParcialFisico] = useState('');
+  const [parcialFinanciero, setParcialFinanciero] = useState('');
+  const [description, setDescription] = useState('');
+  const [observations, setObservations] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-  }
+  useEffect(() => {
+    if (!frontId) return;
+    Promise.all([getSchedule(frontId), getReports(frontId)])
+      .then(([s, r]) => {
+        const sorted = [...s].sort((a, b) => a.weekNo - b.weekNo);
+        setSchedule(sorted);
+        setExistingReports(r);
+        const reportedDates = new Set(r.map((rep) => rep.reportDate));
+        const next = sorted.find(
+          (row) => row.weekNo > 0 && !reportedDates.has(row.fechaCorte)
+        );
+        setReportDate(next?.fechaCorte ?? sorted[1]?.fechaCorte ?? '');
+      })
+      .finally(() => setLoadingCtx(false));
+  }, [frontId]);
 
-  function handlePhotos(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files) setPhotos(Array.from(e.target.files));
-  }
+  const schedRow = useMemo(
+    () => schedule.find((r) => r.fechaCorte === reportDate),
+    [schedule, reportDate]
+  );
 
-  function removePhoto(i: number) {
-    setPhotos((p) => p.filter((_, idx) => idx !== i));
-  }
+  const previous = useMemo(() => {
+    if (!schedRow) return null;
+    return existingReports
+      .filter((r) => r.weekNo < schedRow.weekNo)
+      .sort((a, b) => b.weekNo - a.weekNo)[0];
+  }, [existingReports, schedRow]);
+
+  const prevFisico = Number(previous?.avanceFisicoRealAcum ?? 0);
+  const prevFinanciero = Number(previous?.avanceFinancieroRealAcum ?? 0);
+  const acumFisico = prevFisico + (Number(parcialFisico) || 0);
+  const acumFinanciero = prevFinanciero + (Number(parcialFinanciero) || 0);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!frontId) return;
+    if (!reportDate) {
+      setError('Selecciona la fecha de corte');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
-      // TODO: upload photos to S3 via presigned URL, then attach URLs
-      const payload = {
-        ...form,
-        weekNo: Number(form.weekNo),
-        progParcialScheduled: Number(form.progParcialScheduled),
-        progAcumScheduled: Number(form.progAcumScheduled),
-        progPctScheduled: Number(form.progPctScheduled),
-        avanceFisicoReal: Number(form.avanceFisicoReal),
-        avanceFisicoRealAcum: Number(form.avanceFisicoRealAcum),
-        avanceFisicoPct: Number(form.avanceFisicoPct),
-        avanceFinancieroReal: Number(form.avanceFinancieroReal),
-        avanceFinancieroRealAcum: Number(form.avanceFinancieroRealAcum),
-        avanceFinancieroPct: Number(form.avanceFinancieroPct),
-        photos: [],
-      };
-      await createReport(frontId, payload);
+      await createReport(frontId, {
+        reportDate,
+        parcialFisico: Number(parcialFisico) || 0,
+        parcialFinanciero: Number(parcialFinanciero) || 0,
+        description,
+        observations,
+        photos,
+      });
       navigate(`/projects/${projectId}/fronts/${frontId}`);
     } catch {
-      setError('Error al guardar el reporte. Intenta de nuevo.');
+      setError('Error al guardar. Intenta de nuevo.');
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="max-w-2xl">
+    <div style={{ maxWidth: 720 }}>
       <div className="flex items-center gap-2 text-sm text-gray-400 mb-6">
-        <Link to="/" className="hover:text-gray-600">Proyectos</Link>
+        <Link to="/" className="hover:text-gray-700">Proyectos</Link>
         <ChevronRight size={14} />
-        <Link to={`/projects/${projectId}`} className="hover:text-gray-600">Proyecto</Link>
+        <Link to={`/projects/${projectId}`} className="hover:text-gray-700">Proyecto</Link>
         <ChevronRight size={14} />
-        <Link to={`/projects/${projectId}/fronts/${frontId}`} className="hover:text-gray-600">Frente</Link>
+        <Link to={`/projects/${projectId}/fronts/${frontId}`} className="hover:text-gray-700">Frente</Link>
         <ChevronRight size={14} />
-        <span className="text-gray-700">Nuevo reporte</span>
+        <span className="text-gray-800 font-medium">Nuevo reporte</span>
       </div>
 
-      <h1 className="text-xl font-bold text-gray-900 mb-6">Reporte semanal</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-1">Reporte semanal</h1>
+      <p className="text-sm text-gray-500 mb-6">
+        Solo registra el avance de <strong>esta semana</strong>. El resto se
+        calcula automáticamente.
+      </p>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* General */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <h2 className="font-semibold text-gray-800 text-sm">Información general</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Fecha de corte</label>
-              <input type="date" name="reportDate" value={form.reportDate} onChange={handleChange} required
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-800" />
+      {loadingCtx ? (
+        <p className="text-sm text-gray-400">Cargando…</p>
+      ) : (
+        <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 20 }}>
+          <div className="card">
+            <div className="field" style={{ marginBottom: 12 }}>
+              <label>Fecha de corte (semana)</label>
+              <select
+                className="input"
+                value={reportDate}
+                onChange={(e) => setReportDate(e.target.value)}
+              >
+                <option value="">— elegir semana —</option>
+                {schedule
+                  .filter((r) => r.weekNo > 0)
+                  .map((r) => {
+                    const reported = existingReports.find(
+                      (rep) => rep.reportDate === r.fechaCorte
+                    );
+                    return (
+                      <option key={r.weekNo} value={r.fechaCorte}>
+                        Semana {r.weekNo} — {r.fechaCorte}
+                        {reported ? '  (ya reportada)' : ''}
+                      </option>
+                    );
+                  })}
+              </select>
             </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">No. semana</label>
-              <input type="number" name="weekNo" value={form.weekNo} onChange={handleChange} required min={0}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-800" />
+            {schedRow && (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 12,
+                  marginTop: 8,
+                }}
+              >
+                <KV label="Semana" value={String(schedRow.weekNo)} hint="" />
+                <KV label="Programado esta semana" value={fmt(schedRow.progParcial)} hint="" />
+                <KV
+                  label="Programado acumulado"
+                  value={fmt(schedRow.progAcumulado)}
+                  hint={`${schedRow.progAcumuladoPct.toFixed(2)}%`}
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="card">
+            <div className="section-bar" style={{ margin: '-1.5rem -1.5rem 1rem -1.5rem' }}>
+              AVANCE REAL DE ESTA SEMANA
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 16,
+              }}
+            >
+              <div className="field">
+                <label>Avance Físico parcial ($)</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={parcialFisico}
+                  onChange={(e) => setParcialFisico(e.target.value)}
+                />
+                <p className="text-xs text-gray-500" style={{ marginTop: 4 }}>
+                  Anterior acumulado: <strong>{fmt(prevFisico)}</strong> · Nuevo acumulado: <strong>{fmt(acumFisico)}</strong>
+                </p>
+              </div>
+              <div className="field">
+                <label>Avance Financiero parcial ($)</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={parcialFinanciero}
+                  onChange={(e) => setParcialFinanciero(e.target.value)}
+                />
+                <p className="text-xs text-gray-500" style={{ marginTop: 4 }}>
+                  Anterior acumulado: <strong>{fmt(prevFinanciero)}</strong> · Nuevo acumulado: <strong>{fmt(acumFinanciero)}</strong>
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Programado */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <h2 className="font-semibold text-gray-800 text-sm">Avance programado</h2>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Parcial ($)', name: 'progParcialScheduled' },
-              { label: 'Acumulado ($)', name: 'progAcumScheduled' },
-              { label: '% Acumulado', name: 'progPctScheduled' },
-            ].map((f) => (
-              <div key={f.name}>
-                <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-                <input type="number" name={f.name} step="0.01" value={(form as never)[f.name]} onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-800" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Real físico */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <h2 className="font-semibold text-gray-800 text-sm">Avance real — Físico</h2>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Parcial ($)', name: 'avanceFisicoReal' },
-              { label: 'Acumulado ($)', name: 'avanceFisicoRealAcum' },
-              { label: '% Acumulado', name: 'avanceFisicoPct' },
-            ].map((f) => (
-              <div key={f.name}>
-                <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-                <input type="number" name={f.name} step="0.01" value={(form as never)[f.name]} onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-800" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Real financiero */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <h2 className="font-semibold text-gray-800 text-sm">Avance real — Financiero</h2>
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { label: 'Parcial ($)', name: 'avanceFinancieroReal' },
-              { label: 'Acumulado ($)', name: 'avanceFinancieroRealAcum' },
-              { label: '% Acumulado', name: 'avanceFinancieroPct' },
-            ].map((f) => (
-              <div key={f.name}>
-                <label className="block text-xs font-medium text-gray-600 mb-1">{f.label}</label>
-                <input type="number" name={f.name} step="0.01" value={(form as never)[f.name]} onChange={handleChange}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-800" />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Descripción & Observaciones */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
-          <h2 className="font-semibold text-gray-800 text-sm">Descripción y observaciones</h2>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Descripción de trabajos</label>
-            <textarea name="description" value={form.description} onChange={handleChange} rows={4}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-800 resize-none"
-              placeholder="Describe las actividades realizadas esta semana..." />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Observaciones</label>
-            <textarea name="observations" value={form.observations} onChange={handleChange} rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-800 resize-none"
-              placeholder="Observaciones relevantes..." />
-          </div>
-        </div>
-
-        {/* Fotos */}
-        <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-3">
-          <h2 className="font-semibold text-gray-800 text-sm">Reporte fotográfico</h2>
-          <label className="flex items-center gap-2 cursor-pointer text-sm text-red-800 hover:underline">
-            <Upload size={15} />
-            Seleccionar fotos
-            <input type="file" multiple accept="image/*" onChange={handlePhotos} className="hidden" />
-          </label>
-          {photos.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              {photos.map((f, i) => (
-                <div key={i} className="relative group">
-                  <img src={URL.createObjectURL(f)} alt="" className="w-full h-24 object-cover rounded-lg" />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(i)}
-                    className="absolute top-1 right-1 bg-white rounded-full p-0.5 shadow opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              ))}
+          <div className="card">
+            <div className="field" style={{ marginBottom: 16 }}>
+              <label>Descripción de trabajos</label>
+              <textarea
+                className="input"
+                rows={5}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Describe las actividades realizadas esta semana…"
+              />
             </div>
+            <div className="field">
+              <label>Observaciones</label>
+              <textarea
+                className="input"
+                rows={3}
+                value={observations}
+                onChange={(e) => setObservations(e.target.value)}
+                placeholder="Observaciones, retrasos, incidencias…"
+              />
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="field" style={{ marginBottom: 8 }}>
+              <label>Reporte fotográfico</label>
+            </div>
+            {frontId && <PhotoUploader frontId={frontId} onChange={setPhotos} />}
+          </div>
+
+          {error && (
+            <p
+              style={{
+                color: '#b91c1c',
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                padding: 12,
+                borderRadius: 8,
+                fontSize: 14,
+              }}
+            >
+              {error}
+            </p>
           )}
-        </div>
 
-        {error && <p className="text-red-600 text-sm">{error}</p>}
+          <div style={{ display: 'flex', gap: 12, paddingBottom: 32 }}>
+            <button type="submit" disabled={saving} className="btn-primary">
+              {saving ? 'Guardando…' : 'Guardar reporte'}
+            </button>
+            <Link to={`/projects/${projectId}/fronts/${frontId}`} className="btn-secondary">
+              Cancelar
+            </Link>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
 
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            className="bg-red-800 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-          >
-            {saving ? 'Guardando...' : 'Guardar reporte'}
-          </button>
-          <Link
-            to={`/projects/${projectId}/fronts/${frontId}`}
-            className="px-6 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
-          >
-            Cancelar
-          </Link>
-        </div>
-      </form>
+function KV({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div
+      style={{
+        background: '#f9fafb',
+        border: '1px solid #e5e7eb',
+        borderRadius: 8,
+        padding: '8px 12px',
+      }}
+    >
+      <p style={{ fontSize: 11, color: '#6b7280', marginBottom: 2 }}>{label}</p>
+      <p style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{value}</p>
+      {hint && <p style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>{hint}</p>}
     </div>
   );
 }

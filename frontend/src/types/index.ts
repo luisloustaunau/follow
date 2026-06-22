@@ -16,8 +16,9 @@ export interface Project {
   startDate: string;
   endDate: string;
   durationDays: number;
-  advance?: number; // anticipo amount
-  fronts?: Front[];
+  advance?: number;
+  coordinator?: string;
+  service?: string;
 }
 
 export interface Front {
@@ -26,31 +27,28 @@ export interface Front {
   name: string;
   supervisorId?: string;
   location?: string;
+  amount?: number;
 }
 
 export interface WeeklyReport {
   id: string;
   frontId: string;
-  projectId: string;
   weekNo: number;
-  reportDate: string; // YYYY-MM-DD (end of week / "fecha corte")
-  // Scheduled progress
+  reportDate: string;
   progParcialScheduled: number;
   progAcumScheduled: number;
   progPctScheduled: number;
-  // Physical real progress
   avanceFisicoReal: number;
   avanceFisicoRealAcum: number;
   avanceFisicoPct: number;
-  // Financial real progress
   avanceFinancieroReal: number;
   avanceFinancieroRealAcum: number;
   avanceFinancieroPct: number;
-  // Report content
   description: string;
   observations: string;
-  photos: string[]; // S3 URLs
+  photos: string[];
   submittedBy?: string;
+  submittedByName?: string;
   submittedAt?: string;
 }
 
@@ -65,8 +63,8 @@ export interface Estimation {
   id: string;
   projectId: string;
   estimationNo: string;
-  period: string; // "Jun 2026"
-  periodMonth: string; // "2026-06"
+  period: string;
+  periodMonth: string;
   amount: number;
   deductions: number;
   amountWithIVA: number;
@@ -82,6 +80,14 @@ export interface ScheduleRow {
   fechaCorte: string;
   progParcial: number;
   progParcialPct: number;
-  progAcum: number;
-  progAcumPct: number;
+  progAcumulado: number;
+  progAcumuladoPct: number;
+}
+
+export interface MonthProgramRow {
+  month: string;       // YYYY-MM
+  monthLabel: string;
+  amount: number;
+  pct: number;
+  daysInWindow: number;
 }

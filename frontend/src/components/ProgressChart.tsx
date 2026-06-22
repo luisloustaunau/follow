@@ -9,12 +9,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import type { ScheduleRow, WeeklyReport } from '../types';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 interface Props {
   schedule: ScheduleRow[];
   reports: WeeklyReport[];
+  height?: number;
 }
 
 function fmt(val: number) {
@@ -25,41 +24,66 @@ function fmt(val: number) {
   }).format(val);
 }
 
-export function ProgressChart({ schedule, reports }: Props) {
-  // Build a unified data set keyed by weekNo
-  const reportMap = new Map(reports.map((r) => [r.weekNo, r]));
+export function ProgressChart({ schedule, reports, height = 320 }: Props) {
+  if (schedule.length === 0) {
+    return (
+      <div
+        style={{
+          height,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#9ca3af',
+          fontSize: 13,
+        }}
+      >
+        Sin programa de obra — carga uno desde la pestaña "Programa".
+      </div>
+    );
+  }
 
-  const data = schedule.map((row) => {
-    const report = reportMap.get(row.weekNo);
+  const sorted = [...schedule].sort((a, b) => a.weekNo - b.weekNo);
+  const reportByWeek = new Map<number, WeeklyReport>();
+  reports.forEach((r) => reportByWeek.set(r.weekNo, r));
+
+  // Track running real if the supervisor skipped weeks
+  let lastReal: number | null = null;
+  const data = sorted.map((row) => {
+    const rep = reportByWeek.get(row.weekNo);
+    if (rep) lastReal = rep.avanceFinancieroRealAcum;
     return {
-      week: `S${row.weekNo}`,
-      fecha: format(parseISO(row.fechaCorte), 'd MMM', { locale: es }),
-      programado: row.progAcum,
-      real: report ? report.avanceFinancieroRealAcum : null,
+      fecha: row.fechaCorte.slice(5),
+      semana: `S${row.weekNo}`,
+      Programado: row.progAcumulado,
+      Real: rep ? rep.avanceFinancieroRealAcum : lastReal,
     };
   });
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-        <XAxis dataKey="fecha" tick={{ fontSize: 11 }} interval={3} />
-        <YAxis tickFormatter={(v) => fmt(v)} tick={{ fontSize: 11 }} width={90} />
-        <Tooltip formatter={(v) => typeof v === 'number' ? fmt(v) : v} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <XAxis dataKey="fecha" tick={{ fontSize: 10 }} interval={Math.ceil(data.length / 12)} />
+        <YAxis tickFormatter={(v) => fmt(Number(v))} tick={{ fontSize: 10 }} width={90} />
+        <Tooltip
+          formatter={(v) => (typeof v === 'number' ? fmt(v) : v ?? '—')}
+          labelFormatter={(v, payload) => {
+            const row = payload?.[0]?.payload;
+            return row ? `${row.semana} · ${row.fecha}` : v;
+          }}
+        />
         <Legend />
         <Line
           type="monotone"
-          dataKey="programado"
-          name="Programado"
+          dataKey="Programado"
           stroke="#3b82f6"
           dot={false}
           strokeWidth={2}
         />
         <Line
           type="monotone"
-          dataKey="real"
-          name="Real"
-          stroke="#22c55e"
+          dataKey="Real"
+          stroke="#16a34a"
           dot={{ r: 3 }}
           strokeWidth={2}
           connectNulls={false}
