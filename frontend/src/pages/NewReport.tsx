@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { createReport, getSchedule, getReports } from '../lib/api';
+import { createReport, updateReport, getSchedule, getReports } from '../lib/api';
 import type { ScheduleRow, WeeklyReport } from '../types';
 import { PhotoUploader } from '../components/PhotoUploader';
 import { ChevronRight } from 'lucide-react';
@@ -72,6 +72,32 @@ export function NewReport() {
       .sort((a, b) => b.weekNo - a.weekNo)[0];
   }, [existingReports, schedRow]);
 
+  // If the chosen week already has a report, we're editing it — not
+  // creating a duplicate. Find it so we can prefill + PUT on submit.
+  const editingReport = useMemo(
+    () => existingReports.find((r) => r.reportDate === reportDate) ?? null,
+    [existingReports, reportDate]
+  );
+
+  // Prefill the form when switching to an already-reported week; clear it
+  // when switching to a fresh week.
+  useEffect(() => {
+    if (editingReport) {
+      setParcialFisico(String(editingReport.avanceFisicoReal ?? ''));
+      setParcialFinanciero(String(editingReport.avanceFinancieroReal ?? ''));
+      setDescription(editingReport.description ?? '');
+      setObservations(editingReport.observations ?? '');
+      setPhotos(editingReport.photos ?? []);
+    } else {
+      setParcialFisico('');
+      setParcialFinanciero('');
+      setDescription('');
+      setObservations('');
+      setPhotos([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingReport?.id]);
+
   const prevFisico = Number(previous?.avanceFisicoRealAcum ?? 0);
   const prevFinanciero = Number(previous?.avanceFinancieroRealAcum ?? 0);
   const acumFisico = prevFisico + (Number(parcialFisico) || 0);
@@ -87,14 +113,19 @@ export function NewReport() {
     setSaving(true);
     setError('');
     try {
-      await createReport(frontId, {
+      const payload = {
         reportDate,
         parcialFisico: Number(parcialFisico) || 0,
         parcialFinanciero: Number(parcialFinanciero) || 0,
         description,
         observations,
         photos,
-      });
+      };
+      if (editingReport) {
+        await updateReport(frontId, editingReport.id, payload);
+      } else {
+        await createReport(frontId, payload);
+      }
       navigate(`/projects/${projectId}/fronts/${frontId}`);
     } catch {
       setError('Error al guardar. Intenta de nuevo.');
@@ -115,10 +146,21 @@ export function NewReport() {
         <span className="text-gray-800 font-medium">Nuevo reporte</span>
       </div>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Reporte semanal</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-1">
+        {editingReport ? 'Editar reporte semanal' : 'Reporte semanal'}
+      </h1>
       <p className="text-sm text-gray-500 mb-6">
-        Solo registra el avance de <strong>esta semana</strong>. El resto se
-        calcula automáticamente.
+        {editingReport ? (
+          <>
+            Estás <strong>editando la Semana {editingReport.weekNo}</strong> (
+            {editingReport.reportDate}). Guardar sobrescribe ese reporte.
+          </>
+        ) : (
+          <>
+            Solo registra el avance de <strong>esta semana</strong>. El resto se
+            calcula automáticamente.
+          </>
+        )}
       </p>
 
       {loadingCtx ? (
@@ -143,7 +185,7 @@ export function NewReport() {
                     return (
                       <option key={r.weekNo} value={r.fechaCorte}>
                         Semana {r.weekNo} — {r.fechaCorte}
-                        {reported ? '  (ya reportada)' : ''}
+                        {reported ? '  (reportada — editar)' : ''}
                       </option>
                     );
                   })}
@@ -238,7 +280,14 @@ export function NewReport() {
             <div className="field" style={{ marginBottom: 8 }}>
               <label>Reporte fotográfico</label>
             </div>
-            {frontId && <PhotoUploader frontId={frontId} onChange={setPhotos} />}
+            {frontId && (
+              <PhotoUploader
+                key={reportDate}
+                frontId={frontId}
+                initialKeys={editingReport?.photos ?? []}
+                onChange={setPhotos}
+              />
+            )}
           </div>
 
           {error && (
@@ -258,7 +307,11 @@ export function NewReport() {
 
           <div style={{ display: 'flex', gap: 12, paddingBottom: 32 }}>
             <button type="submit" disabled={saving} className="btn-primary">
-              {saving ? 'Guardando…' : 'Guardar reporte'}
+              {saving
+                ? 'Guardando…'
+                : editingReport
+                ? 'Actualizar reporte'
+                : 'Guardar reporte'}
             </button>
             <Link to={`/projects/${projectId}/fronts/${frontId}`} className="btn-secondary">
               Cancelar
