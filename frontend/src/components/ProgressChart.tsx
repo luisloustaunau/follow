@@ -87,8 +87,11 @@ export function ProgressChart({ schedule, reports, height = 320 }: Props) {
   const reportByWeek = new Map<number, WeeklyReport>();
   reports.forEach((r) => reportByWeek.set(r.weekNo, r));
 
-  // Track running real if the supervisor skipped weeks
-  let lastReal: number | null = null;
+  // Both curves must grow from the SAME origin: semana 0 = $0 (contract
+  // kickoff). Seed the running "real" at 0 so the green line is anchored at
+  // (S0, $0) instead of floating at the first reported week. After the last
+  // report it carries the last value forward (current standing vs. plan).
+  let lastReal = 0;
   const data = sorted.map((row) => {
     const rep = reportByWeek.get(row.weekNo);
     if (rep) lastReal = rep.avanceFinancieroRealAcum;
@@ -96,7 +99,7 @@ export function ProgressChart({ schedule, reports, height = 320 }: Props) {
       fecha: row.fechaCorte.slice(5),
       semana: `S${row.weekNo}`,
       Programado: row.progAcumulado,
-      Real: rep ? rep.avanceFinancieroRealAcum : lastReal,
+      Real: lastReal,
     };
   });
 
