@@ -24,6 +24,47 @@ function fmt(val: number) {
   }).format(val);
 }
 
+interface TickDatum {
+  semana: string;
+  fecha: string;
+}
+
+interface WeekTickProps {
+  x?: number;
+  y?: number;
+  payload?: { value: string; index: number };
+  data?: TickDatum[];
+}
+
+/**
+ * Two-line X-axis tick: week number (S0, S1…) on top, fecha de corte below.
+ * Makes the semana unambiguous so a data point can't be misread as belonging
+ * to a neighbouring week.
+ */
+function WeekTick({ x = 0, y = 0, payload, data }: WeekTickProps) {
+  const row = data?.[payload?.index ?? -1];
+  const semana = row?.semana ?? '';
+  const fecha = payload?.value ?? '';
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={0}
+        y={0}
+        dy={12}
+        textAnchor="middle"
+        fontSize={10}
+        fontWeight={600}
+        fill="#6b7280"
+      >
+        {semana}
+      </text>
+      <text x={0} y={0} dy={26} textAnchor="middle" fontSize={9} fill="#9ca3af">
+        {fecha}
+      </text>
+    </g>
+  );
+}
+
 export function ProgressChart({ schedule, reports, height = 320 }: Props) {
   if (schedule.length === 0) {
     return (
@@ -61,12 +102,13 @@ export function ProgressChart({ schedule, reports, height = 320 }: Props) {
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
+      <LineChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 20 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
         <XAxis
           dataKey="fecha"
-          tick={{ fontSize: 10 }}
+          height={38}
           interval={data.length <= 12 ? 0 : Math.ceil(data.length / 12) - 1}
+          tick={<WeekTick data={data} />}
         />
         <YAxis tickFormatter={(v) => fmt(Number(v))} tick={{ fontSize: 10 }} width={90} />
         <Tooltip
