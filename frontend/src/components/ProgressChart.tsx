@@ -63,7 +63,11 @@ export function ProgressChart({ schedule, reports, height = 320 }: Props) {
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={{ top: 8, right: 24, left: 8, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-        <XAxis dataKey="fecha" tick={{ fontSize: 10 }} interval={Math.ceil(data.length / 12)} />
+        <XAxis
+          dataKey="fecha"
+          tick={{ fontSize: 10 }}
+          interval={data.length <= 12 ? 0 : Math.ceil(data.length / 12) - 1}
+        />
         <YAxis tickFormatter={(v) => fmt(Number(v))} tick={{ fontSize: 10 }} width={90} />
         <Tooltip
           formatter={(v) => (typeof v === 'number' ? fmt(v) : v ?? '—')}
@@ -77,7 +81,7 @@ export function ProgressChart({ schedule, reports, height = 320 }: Props) {
           type="monotone"
           dataKey="Programado"
           stroke="#3b82f6"
-          dot={false}
+          dot={{ r: 2 }}
           strokeWidth={2}
         />
         <Line
