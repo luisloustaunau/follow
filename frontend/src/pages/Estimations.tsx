@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import {
   getEstimations,
   getMonthlyProgram,
+  getProject,
   createEstimation,
   updateEstimation,
   getEstimationsPdfUrl,
@@ -11,6 +12,7 @@ import type {
   Estimation,
   EstimationStatus,
   MonthProgramRow,
+  Project,
 } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { MonthlyProgramEditor } from '../components/MonthlyProgramEditor';
@@ -54,6 +56,7 @@ export function Estimations() {
   const [tab, setTab] = useState<Tab>('control');
   const [estimations, setEstimations] = useState<Estimation[]>([]);
   const [monthlyProgram, setMonthlyProgram] = useState<MonthProgramRow[]>([]);
+  const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [editId, setEditId] = useState<string | null>(null);
@@ -73,10 +76,11 @@ export function Estimations() {
 
   useEffect(() => {
     if (!projectId) return;
-    Promise.all([getEstimations(projectId), getMonthlyProgram(projectId)])
-      .then(([e, m]) => {
+    Promise.all([getEstimations(projectId), getMonthlyProgram(projectId), getProject(projectId)])
+      .then(([e, m, p]) => {
         setEstimations(e);
         setMonthlyProgram([...m].sort((a, b) => a.month.localeCompare(b.month)));
+        setProject(p);
       })
       .finally(() => setLoading(false));
   }, [projectId]);
@@ -100,10 +104,14 @@ export function Estimations() {
   });
 
   const totalProgramado = monthlyProgram.reduce((s, m) => s + m.amount, 0);
-  const totalActual = estimations.reduce((s, e) => s + e.amountWithIVA, 0);
+  const totalEstimadoSinIVA = estimations.reduce((s, e) => s + e.amount, 0);
+  const totalEstimadoConIVA = estimations.reduce((s, e) => s + e.amountWithIVA, 0);
   const totalPagado = estimations
     .filter((e) => e.status === 'PAGADA')
     .reduce((s, e) => s + e.liquid, 0);
+  // Contract base is stored con IVA; derive sin IVA by dividing by 1.16
+  const contratoSinIVA = project ? project.amountWithIVA / 1.16 : null;
+  const porEstimar = contratoSinIVA !== null ? contratoSinIVA - totalEstimadoSinIVA : null;
 
   function startEdit(est: Estimation) {
     setEditId(est.id);
@@ -116,6 +124,11 @@ export function Estimations() {
   }
   async function saveEdit(est: Estimation) {
     if (!projectId) return;
+    // Require paidDate when marking as PAGADA
+    if (editData.status === 'PAGADA' && !editData.paidDate) {
+      alert('Ingresa la fecha de pago antes de marcar como PAGADA.');
+      return;
+    }
     setSaving(true);
     try {
       const updated = await updateEstimation(projectId, est.id, editData);
@@ -198,14 +211,23 @@ export function Estimations() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(2, 1fr)',
           gap: 12,
           marginBottom: 20,
         }}
       >
-        <SummaryCard label="Total programado" value={fmt(totalProgramado)} color="#1d4ed8" bg="#eff6ff" />
-        <SummaryCard label="Total estimado (c/IVA)" value={fmt(totalActual)} color="#7c2d12" bg="#fff7ed" />
-        <SummaryCard label="Total cobrado" value={fmt(totalPagado)} color="#15803d" bg="#f0fdf4" />
+        {contratoSinIVA !== null && (
+          <SummaryCard label="Contrato sin IVA" value={fmt(contratoSinIVA)} color="#1d4ed8" bg="#eff6ff" />
+        )}
+        <SummaryCard label="Estimado sin IVA" value={fmt(totalEstimadoSinIVA)} color="#7c2d12" bg="#fff7ed" />
+        <SummaryCard label="Estimado con IVA" value={fmt(totalEstimadoConIVA)} color="#92400e" bg="#fffbeb" />
+        {porEstimar !== null && (
+          <SummaryCard label="Por estimar (sin IVA)" value={fmt(porEstimar)} color="#15803d" bg="#f0fdf4" />
+        )}
+        <SummaryCard label="Total cobrado (líquido)" value={fmt(totalPagado)} color="#166534" bg="#dcfce7" />
+        {totalProgramado > 0 && (
+          <SummaryCard label="Total prog. mensual" value={fmt(totalProgramado)} color="#1d4ed8" bg="#eff6ff" />
+        )}
       </div>
 
       {/* Tabs */}
@@ -255,7 +277,7 @@ export function Estimations() {
                     <th style={{ textAlign: 'right' }}>Programado</th>
                     <th style={{ textAlign: 'right' }}>Estimado</th>
                     <th style={{ textAlign: 'right' }}>Pagado</th>
-                    <th style={{ textAlign: 'right' }}>Avance</th>
+                    <th style={{ textAlign: 'right' }}>Cumplimiento</th>
                   </tr>
                 </thead>
                 <tbody>
