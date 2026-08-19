@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc",
     "dev": "node --watch dist/local.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "deploy": "tsc && sam build && sam deploy",
+    "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.600.0",
