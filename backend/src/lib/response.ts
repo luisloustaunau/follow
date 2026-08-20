@@ -49,9 +49,10 @@ export function serverError(err: unknown) {
 }
 
 function cors() {
+  const origin = process.env.ALLOWED_ORIGIN ?? '*';
   return {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Headers': 'Authorization,Content-Type',
     'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
   };

@@ -5,34 +5,112 @@
 
 ---
 
-## Estado actual del sistema
+## ✅ / ❌ Estado del backlog (para presentación)
 
-### Lo que ya funciona en producción
+> ✅ = Implementado y en producción  
+> 🔄 = Implementado, pendiente de deploy  
+> ❌ = Pendiente  
+> ⏳ = Diferido (backlog futuro)
+
+### 🔐 ACC — Acceso y Autenticación
+
+| ID | Tarea | Estado |
+|---|---|---|
+| ACC-001 | 2FA por correo/SMS | ❌ |
+| ACC-002 | Recuperación de contraseña (self-service UI) | ❌ |
+| ACC-003 | Flujo de asignación de roles y onboarding de usuario | ❌ |
+| ACC-004 | Gestión de permisos específicos por correo | ❌ |
+| ACC-005 | Búsqueda por nombre/mapa en la app | ❌ |
+| — | JWT reducido de 30 días a 8 horas | 🔄 |
+| — | Aviso de sesión por expirar (banner 15 min antes) | 🔄 |
+| — | Auto-logout al expirar el token | 🔄 |
+
+### 🎨 D-I — Diseño e Interfaz
+
+| ID | Tarea | Estado |
+|---|---|---|
+| D-I-001 | Logotipos oficiales ANMA en todas las páginas | ❌ |
+| D-I-002 | Tipografía y tamaños de texto revisados | ❌ |
+| D-I-003 | Versión tipográfica exhaustiva | ❌ |
+| D-I-004 | Aviso de Privacidad visible en la app y PDFs | 🔄 |
+
+### ⚖️ LZ-S — Legalidad y Cumplimiento
+
+| ID | Tarea | Estado |
+|---|---|---|
+| LZ-S-001 | Aviso de privacidad en todos los bloques de control | 🔄 |
+| LZ-S-002 | Registro INDAUTOR / propiedad intelectual del código | ❌ |
+| LZ-S-003 | Estructura de datos contractuales del personal | ❌ |
+| LZ-S-004 | Estructura de datos de obligaciones financieras | ❌ |
+
+### ⚙️ TEC — Técnico y Rendimiento
+
+| ID | Tarea | Estado |
+|---|---|---|
+| TEC-001 | CORS restringido al dominio de Vercel (no más `*`) | 🔄 |
+| TEC-002 | Documentar infraestructura de hosting y templates | ❌ |
+| TEC-003 | Documento de proceso de actualizaciones del sistema | ❌ |
+| TEC-004 | Componente base de plataforma de consultoría | ❌ |
+| TEC-005 | Separación de roles en backend (middleware centralizado) | ❌ |
+| TEC-006 | Módulo de cuotas operativas y envío de correos | ❌ |
+| TEC-007 | Diagrama de cuatro operativas (arquitectura) | ❌ |
+| TEC-008 | Límite de tipo y tamaño de fotos (JPEG/PNG/WEBP, 10 MB) | 🔄 |
+| TEC-009 | Validación de fechas/tablas en actualizaciones | ❌ |
+| TEC-010 | Permisos obligatorios por contrato de roles | ❌ |
+| — | Error boundaries en todas las páginas (pantalla blanca → mensaje útil) | 🔄 |
+
+### 🔧 FUN — Funcionalidad
+
+| ID | Tarea | Estado |
+|---|---|---|
+| FUN-001 | Acceso por proyecto asignado (filtrado real por supervisor) | ❌ |
+| FUN-002 | Notificaciones de alerta por proyecto (email) | ❌ |
+| FUN-003 | Indicadores de color en estimaciones por estatus | 🔄 |
+| FUN-004 | Colores de datos de estimaciones enlazados a contratista | ❌ |
+| FUN-005 | Historial de proyectos activos con importación de datos | ❌ |
+| FUN-006 | Reporte mensual consolidado (físico + financiero) | ❌ |
+| FUN-007 | Validación de configuración de estado por proyecto | ❌ |
+| FUN-008 | Gráfico de avance semanal verificado con datos reales | ✅ |
+| FUN-009 | Módulo de auditoría / historial de cambios | ❌ |
+| FUN-010 | Modelo matemático de distribución (arquitectura formal) | ⏳ |
+| — | Estatus PENDIENTE_DE_PAGO entre APROBADA y PAGADA | 🔄 |
+| — | Fecha de pago requerida para PAGADA y PENDIENTE_DE_PAGO (validación inline) | 🔄 |
+| — | "Por estimar" en rojo cuando es negativo (sobre-estimado) | 🔄 |
+| — | Separación Contrato/Estimado/Por estimar sin IVA vs con IVA | ✅ |
+| — | Programa de Obra: montos reales (no auto-distribuidos) | ✅ |
+| — | Programa mensual: montos reales (no auto-distribuidos) | ✅ |
+| — | Semana 0 / Semana 1 fechas corregidas (off-by-one) | ✅ |
+
+### 🗺️ ACT — Acciones Estratégicas
+
+| ID | Tarea | Estado |
+|---|---|---|
+| ACT-001 | Solución digital paralela (no-app) para tabularizar proyectos | ⏳ |
+
+---
+
+## Estado del sistema (módulos en producción)
+
 | Módulo | Estado |
 |---|---|
-| Login / sesión JWT | ✅ Funcional |
-| Proyectos (crear, ver) | ✅ Funcional |
-| Frentes de trabajo | ✅ Funcional |
-| Programa de Obra (Semana / Fecha / $) | ✅ Estructura correcta, montos manuales |
-| Reportes semanales (físico + financiero) | ✅ Funcional |
-| Gráfica programado vs. real (S-curve) | ✅ Funcional |
-| Control de Estimaciones | ✅ Funcional |
-| Programa mensual de estimaciones | ✅ Funcional, montos manuales |
-| Totales sin/con IVA separados | ✅ Corregido |
-| "Por estimar" = contrato sin IVA − estimado sin IVA | ✅ Corregido |
-| PAGADA requiere fecha de pago | ✅ Corregido |
-| Export PDF reportes | ✅ Funcional |
-| Export PDF estimaciones | ✅ Funcional |
-| Roles (owner / supervisor / billing) | ✅ Implementados en backend |
-
-### Problemas conocidos pendientes
-| # | Problema | Impacto |
-|---|---|---|
-| P1 | JWT expira en 30 días, no hay refresh ni aviso al usuario | Usuario pierde sesión sin saber |
-| P2 | CORS permite `*` (cualquier origen) | Riesgo de seguridad en producción |
-| P3 | No hay recuperación de contraseña en la UI | Admin debe correr script manual |
-| P4 | No hay manejo de errores de red en el frontend | Pantalla en blanco si la API falla |
-| P5 | Supervisor puede ver proyectos de otros supervisores | Filtrado solo en frontend, no en backend |
+| Login / sesión JWT | ✅ |
+| Proyectos (crear, ver) | ✅ |
+| Frentes de trabajo | ✅ |
+| Programa de Obra (Semana / Fecha / $) | ✅ |
+| Reportes semanales (físico + financiero) | ✅ |
+| Gráfica programado vs. real (S-curve) | ✅ |
+| Control de Estimaciones | ✅ |
+| Programa mensual de estimaciones | ✅ |
+| Totales sin/con IVA separados | ✅ |
+| "Por estimar" = contrato sin IVA − estimado sin IVA | ✅ |
+| PAGADA / PENDIENTE_DE_PAGO requieren fecha de pago | 🔄 |
+| Export PDF reportes | ✅ |
+| Export PDF estimaciones | ✅ |
+| Roles (owner / supervisor / billing) | ✅ |
+| CORS restringido a Vercel | 🔄 |
+| Aviso de privacidad en footer | 🔄 |
+| Error boundaries (sin pantalla blanca) | 🔄 |
+| Fotos: solo JPEG/PNG/WEBP, máx 10 MB | 🔄 |
 
 ---
 

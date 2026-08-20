@@ -34,9 +34,31 @@ export function PhotoUploader({ frontId, initialKeys = [], onChange }: Props) {
 
   async function handleFiles(files: FileList | null) {
     if (!files || files.length === 0) return;
-    setUploading((n) => n + files.length);
+
+    const MAX_SIZE_MB = 10;
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    const rejected: string[] = [];
+
+    const valid = Array.from(files).filter((f) => {
+      if (!ALLOWED_TYPES.includes(f.type)) {
+        rejected.push(`${f.name}: tipo no permitido (solo JPEG, PNG, WEBP)`);
+        return false;
+      }
+      if (f.size > MAX_SIZE_MB * 1024 * 1024) {
+        rejected.push(`${f.name}: excede ${MAX_SIZE_MB} MB`);
+        return false;
+      }
+      return true;
+    });
+
+    if (rejected.length > 0) {
+      alert(`Archivos rechazados:\n${rejected.join('\n')}`);
+    }
+    if (valid.length === 0) return;
+
+    setUploading((n) => n + valid.length);
     const uploaded: string[] = [];
-    for (const file of Array.from(files)) {
+    for (const file of valid) {
       try {
         const key = await uploadPhoto(frontId, file);
         uploaded.push(key);
@@ -84,7 +106,7 @@ export function PhotoUploader({ frontId, initialKeys = [], onChange }: Props) {
         <input
           type="file"
           multiple
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp"
           onChange={(e) => handleFiles(e.target.files)}
           style={{ display: 'none' }}
         />

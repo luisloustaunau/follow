@@ -32,6 +32,7 @@ const STATUSES: EstimationStatus[] = [
   'INGRESADA',
   'EN_REVISION',
   'APROBADA',
+  'PENDIENTE_DE_PAGO',
   'PAGADA',
 ];
 
@@ -74,6 +75,8 @@ export function Estimations() {
 
   const [downloading, setDownloading] = useState(false);
 
+  const [paidDateError, setPaidDateError] = useState(false);
+
   useEffect(() => {
     if (!projectId) return;
     Promise.all([getEstimations(projectId), getMonthlyProgram(projectId), getProject(projectId)])
@@ -115,6 +118,7 @@ export function Estimations() {
 
   function startEdit(est: Estimation) {
     setEditId(est.id);
+    setPaidDateError(false);
     setEditData({
       status: est.status,
       invoiceNo: est.invoiceNo,
@@ -124,11 +128,15 @@ export function Estimations() {
   }
   async function saveEdit(est: Estimation) {
     if (!projectId) return;
-    // Require paidDate when marking as PAGADA
-    if (editData.status === 'PAGADA' && !editData.paidDate) {
-      alert('Ingresa la fecha de pago antes de marcar como PAGADA.');
+    // Require paidDate when marking as PAGADA or PENDIENTE_DE_PAGO
+    if (
+      (editData.status === 'PAGADA' || editData.status === 'PENDIENTE_DE_PAGO') &&
+      !editData.paidDate
+    ) {
+      setPaidDateError(true);
       return;
     }
+    setPaidDateError(false);
     setSaving(true);
     try {
       const updated = await updateEstimation(projectId, est.id, editData);
@@ -222,7 +230,12 @@ export function Estimations() {
         <SummaryCard label="Estimado sin IVA" value={fmt(totalEstimadoSinIVA)} color="#7c2d12" bg="#fff7ed" />
         <SummaryCard label="Estimado con IVA" value={fmt(totalEstimadoConIVA)} color="#92400e" bg="#fffbeb" />
         {porEstimar !== null && (
-          <SummaryCard label="Por estimar (sin IVA)" value={fmt(porEstimar)} color="#15803d" bg="#f0fdf4" />
+          <SummaryCard
+            label="Por estimar (sin IVA)"
+            value={fmt(porEstimar)}
+            color={porEstimar < 0 ? '#dc2626' : '#15803d'}
+            bg={porEstimar < 0 ? '#fef2f2' : '#f0fdf4'}
+          />
         )}
         <SummaryCard label="Total cobrado (líquido)" value={fmt(totalPagado)} color="#166534" bg="#dcfce7" />
         {totalProgramado > 0 && (
@@ -361,13 +374,25 @@ export function Estimations() {
                         </td>
                         <td>
                           {editId === est.id ? (
-                            <input
-                              type="date"
-                              value={editData.paidDate ?? ''}
-                              onChange={(e) =>
-                                setEditData((d) => ({ ...d, paidDate: e.target.value }))
-                              }
-                            />
+                            <div>
+                              <input
+                                type="date"
+                                value={editData.paidDate ?? ''}
+                                onChange={(e) => {
+                                  setPaidDateError(false);
+                                  setEditData((d) => ({ ...d, paidDate: e.target.value }));
+                                }}
+                                style={{
+                                  border: paidDateError ? '2px solid #dc2626' : undefined,
+                                  borderRadius: 4,
+                                }}
+                              />
+                              {paidDateError && (
+                                <p style={{ color: '#dc2626', fontSize: 11, marginTop: 2 }}>
+                                  Requerida para este estatus
+                                </p>
+                              )}
+                            </div>
                           ) : (
                             <span style={{ fontSize: 12 }}>{est.paidDate || '—'}</span>
                           )}

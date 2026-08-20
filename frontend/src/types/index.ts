@@ -57,6 +57,7 @@ export type EstimationStatus =
   | 'INGRESADA'
   | 'EN_REVISION'
   | 'APROBADA'
+  | 'PENDIENTE_DE_PAGO'
   | 'PAGADA';
 
 export interface Estimation {

@@ -12,6 +12,7 @@ Globals:
         TABLE_NAME: !Ref MainTable
         BUCKET_NAME: !Sub 'anma-photos-${AWS::AccountId}'
         JWT_SECRET: !Ref JwtSecret
+        ALLOWED_ORIGIN: !Ref AllowedOrigin
         AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
 
 Parameters:
@@ -19,6 +20,9 @@ Parameters:
     Type: String
     Default: 'change-me-in-production'
     NoEcho: true
+  AllowedOrigin:
+    Type: String
+    Default: 'https://frontend-beta-two-86.vercel.app'
 
 Resources:
   # ── DynamoDB ────────────────────────────────────────────────
