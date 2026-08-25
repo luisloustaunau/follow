@@ -13,6 +13,7 @@ import { ReportDetail } from './pages/ReportDetail';
 import { Estimations } from './pages/Estimations';
 import { AllReports } from './pages/AllReports';
 import { AllEstimations } from './pages/AllEstimations';
+import { Users } from './pages/Users';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="/projects/:projectId/fronts/:frontId/reports/new" element={<ErrorBoundary><NewReport /></ErrorBoundary>} />
               <Route path="/projects/:projectId/fronts/:frontId/reports/:reportId" element={<ErrorBoundary><ReportDetail /></ErrorBoundary>} />
               <Route path="/projects/:projectId/estimations" element={<ErrorBoundary><Estimations /></ErrorBoundary>} />
+              <Route path="/users" element={<ErrorBoundary><Users /></ErrorBoundary>} />
             </Route>
           </Routes>
         </ErrorBoundary>

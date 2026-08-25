@@ -7,6 +7,8 @@ export interface User {
   role: Role;
 }
 
+export type ProjectStatus = 'PLANEACION' | 'EN_PROGRESO' | 'PAUSADO' | 'COMPLETADO';
+
 export interface Project {
   id: string;
   name: string;
@@ -19,6 +21,8 @@ export interface Project {
   advance?: number;
   coordinator?: string;
   service?: string;
+  status?: ProjectStatus;
+  avanceFisico?: number;  // % pulled from latest report
 }
 
 export interface Front {

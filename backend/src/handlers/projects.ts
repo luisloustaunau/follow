@@ -3,6 +3,7 @@ import {
   QueryCommand,
   PutCommand,
   GetCommand,
+  UpdateCommand,
   BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { dynamo, TABLE } from '../lib/dynamo.js';
@@ -41,7 +42,37 @@ export async function handler(
           ExpressionAttributeValues: { ':type': 'PROJECT' },
         })
       );
-      return ok(result.Items ?? []);
+      const projects = result.Items ?? [];
+
+      // For each project, find its fronts, then pull the latest report to get avanceFisico
+      const enriched = await Promise.all(
+        projects.map(async (p) => {
+          try {
+            const frontsRes = await dynamo.send(new QueryCommand({
+              TableName: TABLE,
+              KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+              ExpressionAttributeValues: { ':pk': `PROJECT#${p.id}`, ':prefix': 'FRONT#' },
+            }));
+            const fronts = frontsRes.Items ?? [];
+            let avanceFisico = 0;
+            for (const front of fronts) {
+              const reportsRes = await dynamo.send(new QueryCommand({
+                TableName: TABLE,
+                KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+                ExpressionAttributeValues: { ':pk': `FRONT#${front.id}`, ':prefix': 'REPORT#' },
+                ScanIndexForward: false,
+                Limit: 1,
+              }));
+              const latest = reportsRes.Items?.[0];
+              if (latest) avanceFisico = Math.max(avanceFisico, Number(latest.avanceFisicoPct ?? 0));
+            }
+            return { ...p, avanceFisico: parseFloat(avanceFisico.toFixed(2)) };
+          } catch {
+            return { ...p, avanceFisico: 0 };
+          }
+        })
+      );
+      return ok(enriched);
     }
 
     // GET /projects/:id
@@ -91,6 +122,7 @@ export async function handler(
         advance: advance ? Number(advance) : 0,
         coordinator: coordinator ?? '',
         service: service ?? '',
+        status: body.status ?? 'EN_PROGRESO',
         createdAt: new Date().toISOString(),
       };
       await dynamo.send(new PutCommand({ TableName: TABLE, Item: item }));
@@ -118,6 +150,23 @@ export async function handler(
       }
 
       return created({ ...item, monthlyProgramRows: rows.length });
+    }
+
+    // PUT /projects/:id — update status (owner only)
+    if (method === 'PUT' && projectId) {
+      if (user.role !== 'owner') return unauthorized();
+      const body = JSON.parse(event.body ?? '{}');
+      const allowed = ['PLANEACION', 'EN_PROGRESO', 'PAUSADO', 'COMPLETADO'];
+      if (!body.status || !allowed.includes(body.status))
+        return badRequest(`status must be one of: ${allowed.join(', ')}`);
+      await dynamo.send(new UpdateCommand({
+        TableName: TABLE,
+        Key: { PK: `PROJECT#${projectId}`, SK: '#META' },
+        UpdateExpression: 'SET #s = :s',
+        ExpressionAttributeNames: { '#s': 'status' },
+        ExpressionAttributeValues: { ':s': body.status },
+      }));
+      return ok({ id: projectId, status: body.status });
     }
 
     return badRequest('Unknown route');

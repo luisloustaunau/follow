@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LayoutDashboard, FileText, DollarSign, LogOut } from 'lucide-react';
+import { LayoutDashboard, FileText, DollarSign, LogOut, Users } from 'lucide-react';
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -15,6 +15,7 @@ export function Navbar() {
     { to: '/', label: 'Proyectos', icon: <LayoutDashboard size={16} /> },
     { to: '/reports', label: 'Reportes', icon: <FileText size={16} /> },
     { to: '/estimations', label: 'Estimaciones', icon: <DollarSign size={16} /> },
+    ...(user?.role === 'owner' ? [{ to: '/users', label: 'Usuarios', icon: <Users size={16} /> }] : []),
   ];
 
   return (

@@ -37,6 +37,12 @@ export const getProject = (id: string) =>
   api.get(`/projects/${id}`).then((r) => r.data);
 export const createProject = (data: unknown) =>
   api.post('/projects', data).then((r) => r.data);
+export const updateProjectStatus = (id: string, status: string) =>
+  api.put(`/projects/${id}`, { status }).then((r) => r.data);
+
+// ─── Users ─────────────────────────────────────────────────
+export const createUser = (data: unknown) =>
+  api.post('/auth/register', data).then((r) => r.data);
 
 // ─── Fronts ────────────────────────────────────────────────
 export const getFronts = (projectId: string) =>

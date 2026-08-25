@@ -3,6 +3,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import { createProject } from '../lib/api';
 import { ChevronRight } from 'lucide-react';
 
+const STATUS_OPTIONS = [
+  { value: 'PLANEACION',  label: 'Planeación' },
+  { value: 'EN_PROGRESO', label: 'En progreso' },
+  { value: 'PAUSADO',     label: 'Pausado' },
+  { value: 'COMPLETADO',  label: 'Completado' },
+];
+
 export function NewProject() {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
@@ -16,9 +23,10 @@ export function NewProject() {
     endDate: '',
     durationDays: '',
     advance: '',
+    status: 'EN_PROGRESO',
   });
 
-  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
   }
 
@@ -91,6 +99,19 @@ export function NewProject() {
                 className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-800/20 focus:border-red-800 transition-all"
               />
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Estatus del proyecto</label>
+            <select
+              name="status"
+              value={form.status}
+              onChange={handleChange}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-red-800/20 focus:border-red-800 transition-all"
+            >
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
