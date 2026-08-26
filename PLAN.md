@@ -21,9 +21,9 @@
 | ACC-003 | Flujo de asignación de roles y onboarding de usuario | ❌ |
 | ACC-004 | Gestión de permisos específicos por correo | ❌ |
 | ACC-005 | Búsqueda por nombre/mapa en la app | ❌ |
-| — | JWT reducido de 30 días a 8 horas | 🔄 |
-| — | Aviso de sesión por expirar (banner 15 min antes) | 🔄 |
-| — | Auto-logout al expirar el token | 🔄 |
+| — | JWT reducido de 30 días a 8 horas | ✅ |
+| — | Aviso de sesión por expirar (banner 15 min antes) | ✅ |
+| — | Auto-logout al expirar el token | ✅ |
 
 ### 🎨 D-I — Diseño e Interfaz
 
@@ -32,13 +32,13 @@
 | D-I-001 | Logotipos oficiales ANMA en todas las páginas | ❌ |
 | D-I-002 | Tipografía y tamaños de texto revisados | ❌ |
 | D-I-003 | Versión tipográfica exhaustiva | ❌ |
-| D-I-004 | Aviso de Privacidad visible en la app y PDFs | 🔄 |
+| D-I-004 | Aviso de Privacidad visible en la app y PDFs | ✅ |
 
 ### ⚖️ LZ-S — Legalidad y Cumplimiento
 
 | ID | Tarea | Estado |
 |---|---|---|
-| LZ-S-001 | Aviso de privacidad en todos los bloques de control | 🔄 |
+| LZ-S-001 | Aviso de privacidad en todos los bloques de control | ✅ |
 | LZ-S-002 | Registro INDAUTOR / propiedad intelectual del código | ❌ |
 | LZ-S-003 | Estructura de datos contractuales del personal | ❌ |
 | LZ-S-004 | Estructura de datos de obligaciones financieras | ❌ |
@@ -47,17 +47,17 @@
 
 | ID | Tarea | Estado |
 |---|---|---|
-| TEC-001 | CORS restringido al dominio de Vercel (no más `*`) | 🔄 |
+| TEC-001 | CORS restringido al dominio de Vercel (no más `*`) | ✅ |
 | TEC-002 | Documentar infraestructura de hosting y templates | ❌ |
 | TEC-003 | Documento de proceso de actualizaciones del sistema | ❌ |
 | TEC-004 | Componente base de plataforma de consultoría | ❌ |
 | TEC-005 | Separación de roles en backend (middleware centralizado) | ❌ |
 | TEC-006 | Módulo de cuotas operativas y envío de correos | ❌ |
 | TEC-007 | Diagrama de cuatro operativas (arquitectura) | ❌ |
-| TEC-008 | Límite de tipo y tamaño de fotos (JPEG/PNG/WEBP, 10 MB) | 🔄 |
+| TEC-008 | Límite de tipo y tamaño de fotos (JPEG/PNG/WEBP, 10 MB) | ✅ |
 | TEC-009 | Validación de fechas/tablas en actualizaciones | ❌ |
 | TEC-010 | Permisos obligatorios por contrato de roles | ❌ |
-| — | Error boundaries en todas las páginas (pantalla blanca → mensaje útil) | 🔄 |
+| — | Error boundaries en todas las páginas (pantalla blanca → mensaje útil) | ✅ |
 
 ### 🔧 FUN — Funcionalidad
 
@@ -65,7 +65,7 @@
 |---|---|---|
 | FUN-001 | Acceso por proyecto asignado (filtrado real por supervisor) | ❌ |
 | FUN-002 | Notificaciones de alerta por proyecto (email) | ❌ |
-| FUN-003 | Indicadores de color en estimaciones por estatus | 🔄 |
+| FUN-003 | Indicadores de color en estimaciones por estatus | ✅ |
 | FUN-004 | Colores de datos de estimaciones enlazados a contratista | ❌ |
 | FUN-005 | Historial de proyectos activos con importación de datos | ❌ |
 | FUN-006 | Reporte mensual consolidado (físico + financiero) | ❌ |
@@ -73,13 +73,22 @@
 | FUN-008 | Gráfico de avance semanal verificado con datos reales | ✅ |
 | FUN-009 | Módulo de auditoría / historial de cambios | ❌ |
 | FUN-010 | Modelo matemático de distribución (arquitectura formal) | ⏳ |
-| — | Estatus PENDIENTE_DE_PAGO entre APROBADA y PAGADA | 🔄 |
-| — | Fecha de pago requerida para PAGADA y PENDIENTE_DE_PAGO (validación inline) | 🔄 |
-| — | "Por estimar" en rojo cuando es negativo (sobre-estimado) | 🔄 |
+| — | Estatus PENDIENTE_DE_PAGO entre APROBADA y PAGADA | ✅ |
+| — | Fecha de pago requerida para PAGADA y PENDIENTE_DE_PAGO (validación inline) | ✅ |
+| — | "Por estimar" en rojo cuando es negativo (sobre-estimado) | ✅ |
 | — | Separación Contrato/Estimado/Por estimar sin IVA vs con IVA | ✅ |
 | — | Programa de Obra: montos reales (no auto-distribuidos) | ✅ |
 | — | Programa mensual: montos reales (no auto-distribuidos) | ✅ |
 | — | Semana 0 / Semana 1 fechas corregidas (off-by-one) | ✅ |
+| — | Estatus de proyecto (Planeación / En progreso / Pausado / Completado) | ✅ |
+| — | Dashboard: badge de estatus + barra de avance físico | ✅ |
+| — | Dashboard: búsqueda por nombre/contratista/no. contrato | ✅ |
+| — | Dashboard: filtro por estatus | ✅ |
+| — | Página `/users`: alta de usuarios (solo owner) | ✅ |
+| — | 🔴 `POST /auth/register` SIN validación de rol (hueco de seguridad) | ❌ |
+| — | `GET /users` — listar usuarios existentes | ❌ |
+| — | Desactivar / eliminar usuario desde la UI | ❌ |
+| — | Editar rol de un usuario existente | ❌ |
 
 ### 🗺️ ACT — Acciones Estratégicas
 
@@ -103,14 +112,14 @@
 | Programa mensual de estimaciones | ✅ |
 | Totales sin/con IVA separados | ✅ |
 | "Por estimar" = contrato sin IVA − estimado sin IVA | ✅ |
-| PAGADA / PENDIENTE_DE_PAGO requieren fecha de pago | 🔄 |
+| PAGADA / PENDIENTE_DE_PAGO requieren fecha de pago | ✅ |
 | Export PDF reportes | ✅ |
 | Export PDF estimaciones | ✅ |
 | Roles (owner / supervisor / billing) | ✅ |
-| CORS restringido a Vercel | 🔄 |
-| Aviso de privacidad en footer | 🔄 |
-| Error boundaries (sin pantalla blanca) | 🔄 |
-| Fotos: solo JPEG/PNG/WEBP, máx 10 MB | 🔄 |
+| CORS restringido a Vercel | ✅ |
+| Aviso de privacidad en footer | ✅ |
+| Error boundaries (sin pantalla blanca) | ✅ |
+| Fotos: solo JPEG/PNG/WEBP, máx 10 MB | ✅ |
 
 ---
 
