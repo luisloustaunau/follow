@@ -43,6 +43,13 @@ export const updateProjectStatus = (id: string, status: string) =>
 // ─── Users ─────────────────────────────────────────────────
 export const createUser = (data: unknown) =>
   api.post('/auth/register', data).then((r) => r.data);
+export const getUsers = () => api.get('/auth/users').then((r) => r.data);
+export const updateUser = (email: string, data: { role?: string; active?: boolean }) =>
+  api.put(`/auth/users/${encodeURIComponent(email)}`, data).then((r) => r.data);
+export const resetUserPassword = (email: string, password: string) =>
+  api
+    .post(`/auth/users/${encodeURIComponent(email)}/reset-password`, { password })
+    .then((r) => r.data);
 
 // ─── Fronts ────────────────────────────────────────────────
 export const getFronts = (projectId: string) =>

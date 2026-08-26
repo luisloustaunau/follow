@@ -31,6 +31,14 @@ export function unauthorized() {
   };
 }
 
+export function forbidden(message = 'No tienes permiso para realizar esta acción') {
+  return {
+    statusCode: 403,
+    headers: cors(),
+    body: JSON.stringify({ error: message }),
+  };
+}
+
 export function notFound(message = 'Not found') {
   return {
     statusCode: 404,

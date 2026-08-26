@@ -17,13 +17,19 @@
 | ID | Tarea | Estado |
 |---|---|---|
 | ACC-001 | 2FA por correo/SMS | ❌ |
-| ACC-002 | Recuperación de contraseña (self-service UI) | ❌ |
-| ACC-003 | Flujo de asignación de roles y onboarding de usuario | ❌ |
-| ACC-004 | Gestión de permisos específicos por correo | ❌ |
+| ACC-002 | Recuperación de contraseña (self-service UI) | ⏳ requiere SES |
+| ACC-003 | Flujo de asignación de roles y onboarding de usuario | ✅ |
+| ACC-004 | Gestión de permisos específicos por correo | ✅ |
 | ACC-005 | Búsqueda por nombre/mapa en la app | ❌ |
 | — | JWT reducido de 30 días a 8 horas | ✅ |
 | — | Aviso de sesión por expirar (banner 15 min antes) | ✅ |
 | — | Auto-logout al expirar el token | ✅ |
+| — | `POST /auth/register` restringido a owner (hueco cerrado) | ✅ |
+| — | `GET /auth/users` — listado de usuarios (sin hashes) | ✅ |
+| — | Cambiar rol de un usuario existente | ✅ |
+| — | Activar / desactivar cuenta (login bloqueado) | ✅ |
+| — | Restablecer contraseña desde la UI (admin define nueva) | ✅ |
+| — | Protecciones: no auto-desactivarse, no auto-degradarse, mínimo un owner activo | ✅ |
 
 ### 🎨 D-I — Diseño e Interfaz
 
@@ -85,10 +91,7 @@
 | — | Dashboard: búsqueda por nombre/contratista/no. contrato | ✅ |
 | — | Dashboard: filtro por estatus | ✅ |
 | — | Página `/users`: alta de usuarios (solo owner) | ✅ |
-| — | 🔴 `POST /auth/register` SIN validación de rol (hueco de seguridad) | ❌ |
-| — | `GET /users` — listar usuarios existentes | ❌ |
-| — | Desactivar / eliminar usuario desde la UI | ❌ |
-| — | Editar rol de un usuario existente | ❌ |
+| — | Panel de administración de usuarios completo | ✅ |
 
 ### 🗺️ ACT — Acciones Estratégicas
 
@@ -142,14 +145,70 @@
 | ACC-005 | Implementar búsqueda en los resultados: definir si con Mapa/ubicación con precio o búsqueda por nombre en la app | Baja | M | — |
 
 #### Detalle técnico ACC-002 (prioritario)
-**Situación actual:** Existe `scripts/reset-password.mjs` que requiere acceso SSH/terminal.  
-No hay flujo de self-service en la UI.
+**Situación actual:** El administrador puede restablecer la contraseña de cualquier usuario desde
+`/users` (define una nueva y se la entrega por un canal seguro). Esto cubre la necesidad operativa
+sin depender de correo.
+
+**Pendiente (self-service):** para que el propio usuario recupere su contraseña sin intervención del
+administrador se requiere AWS SES. Ver "Dependencia: AWS SES" más abajo.
 
 **Solución propuesta:**
 1. Backend: `POST /auth/forgot-password` → genera token de 1 hora, guarda hash en DynamoDB, envía email via SES
 2. Backend: `POST /auth/reset-password` → valida token, actualiza `passwordHash`
 3. Frontend: página `/forgot-password` + página `/reset-password?token=xxx`
 4. AWS SES: configurar dominio `anma.mx` como sender verificado
+
+---
+
+### 🔑 Módulo de administración de usuarios (implementado)
+
+**Modelo:** las cuentas **solo las crea el administrador (`owner`)**. No hay registro público.
+El rol se asigna en el alta y puede cambiarse después.
+
+| Endpoint | Permiso | Descripción |
+|---|---|---|
+| `POST /auth/register` | owner | Crea cuenta con rol. Excepción: si no existe ningún usuario, se permite el primer alta (bootstrap) |
+| `GET /auth/users` | owner | Lista usuarios. Nunca devuelve `passwordHash` |
+| `PUT /auth/users/{email}` | owner | Cambia rol y/o activa/desactiva la cuenta |
+| `POST /auth/users/{email}/reset-password` | owner | Define una contraseña nueva |
+
+**Protecciones:**
+- Cuenta desactivada → login rechazado aunque la contraseña sea correcta
+- El owner no puede desactivarse ni degradarse a sí mismo
+- El sistema impide dejar cero administradores activos
+- Contraseña mínima de 8 caracteres; correo duplicado rechazado con mensaje claro
+- Se registra `createdBy`, `updatedBy` y `lastPasswordResetBy` para trazabilidad
+
+**Sobre las contraseñas:** se guardan con hash `bcrypt`, que es irreversible. Ni el administrador ni
+el sistema pueden leerlas. Por eso la operación disponible es *restablecer*, no *consultar*. Esto
+protege al usuario (reutiliza contraseñas en otros servicios), evita responsabilidad legal ante la
+LFPDPPP, y mantiene el no repudio: si nadie más conoce la contraseña, las acciones registradas bajo
+esa cuenta son atribuibles a su titular.
+
+**Desactivar en vez de borrar:** eliminar un usuario dejaría huérfanas las referencias `createdBy` /
+`lastEditedBy` en reportes y estimaciones. Para un sistema que respalda facturación de obra conviene
+conservar quién hizo qué.
+
+---
+
+### 📧 Dependencia: AWS SES (pendiente)
+
+**Qué es:** Simple Email Service, el servicio de AWS para enviar correo desde el backend.
+Hoy las Lambdas no pueden enviar correo.
+
+**Qué bloquea:** ACC-002 (recuperación self-service), ACC-003 en su versión por invitación
+(el usuario define su propia contraseña) y FUN-002 (notificaciones).
+
+**Qué se requiere:**
+1. Verificar el dominio `anma.mx` en SES → agregar registros DNS (DKIM + SPF). Requiere acceso al
+   panel DNS de ANMA.
+2. Salir del *sandbox* de SES (solicitud a AWS, ~1 día) para poder enviar a cualquier destinatario.
+3. Permiso `ses:SendEmail` en `template.yaml` + helper `src/lib/ses.ts` (~1 h de desarrollo).
+
+**Costo:** ~$0.10 USD por cada 1,000 correos.
+
+**Alternativa mientras tanto (en uso):** el administrador define la contraseña desde `/users` y la
+entrega en persona o por canal seguro. No requiere correo.
 
 ---
 
