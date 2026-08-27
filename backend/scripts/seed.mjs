@@ -273,6 +273,40 @@ function buildSimpleSchedule(startDate, endDate) {
   return rows;
 }
 
+/**
+ * Distributes `totalAmount` across an existing week skeleton following an
+ * S-curve (slow mobilisation → peak production → slow closeout), which is how
+ * real construction contracts are programmed. Week 0 always stays at $0.
+ *
+ * NOTE: this is for DEMO DATA ONLY. In the live app the Programa de Obra is
+ * generated with $0 amounts and the amounts are typed in by the user.
+ */
+function distributeSCurve(rows, totalAmount) {
+  const weeks = rows.filter((r) => r.weekNo > 0);
+  const n = weeks.length;
+  if (n === 0 || totalAmount <= 0) return rows;
+
+  // Logistic weight per week, centred at mid-contract.
+  const weights = weeks.map((_, i) => {
+    const x = (i + 0.5) / n;          // 0..1 through the contract
+    return Math.exp(-Math.pow((x - 0.5) / 0.28, 2)); // bell → S-curve when accumulated
+  });
+  const wSum = weights.reduce((a, b) => a + b, 0);
+
+  let assigned = 0;
+  weeks.forEach((w, i) => {
+    const isLast = i === n - 1;
+    // Last week absorbs the rounding remainder so the total matches exactly.
+    const amt = isLast
+      ? parseFloat((totalAmount - assigned).toFixed(2))
+      : parseFloat(((weights[i] / wSum) * totalAmount).toFixed(2));
+    w.progParcial = amt;
+    assigned = parseFloat((assigned + amt).toFixed(2));
+  });
+
+  return rows;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN
 // ─────────────────────────────────────────────────────────────────────────────
@@ -336,7 +370,7 @@ async function main() {
   });
 
   // Schedule P1 — real Excel amounts
-  const sched1 = buildSchedule(SCHEDULE_P1, p1AmountIVA);
+  const sched1 = buildSchedule(SCHEDULE_P1, p1AmountIVA / 1.16);
   await batchWrite(sched1.map((r) => ({
     PutRequest: {
       Item: {
@@ -374,7 +408,9 @@ async function main() {
   for (const r of reportsP1) {
     const schedRow = sched1.find((s) => s.weekNo === r.weekNo) ?? sched1[0];
     acumFisico      = parseFloat((acumFisico      + r.parcialFisico).toFixed(2));
-    acumFinanciero  = parseFloat((acumFinanciero  + r.parcialFinanciero).toFixed(2));
+    // Billing trails execution by ~3 weeks (estimación → revisión → cobro).
+    const facturadoP1 = reportsP1.find((x) => x.weekNo === r.weekNo - 3)?.parcialFisico ?? 0;
+    acumFinanciero  = parseFloat((acumFinanciero  + facturadoP1).toFixed(2));
     const rid = randomUUID();
     await put({
       PK: `FRONT#${f1id}`,
@@ -388,10 +424,10 @@ async function main() {
       progPctScheduled:     schedRow.progAcumuladoPct,
       avanceFisicoReal:          r.parcialFisico,
       avanceFisicoRealAcum:      acumFisico,
-      avanceFisicoPct:           parseFloat(((acumFisico / p1AmountIVA) * 100).toFixed(4)),
-      avanceFinancieroReal:      r.parcialFinanciero,
+      avanceFisicoPct:           parseFloat(((acumFisico / (p1AmountIVA / 1.16)) * 100).toFixed(4)),
+      avanceFinancieroReal:      facturadoP1,
       avanceFinancieroRealAcum:  acumFinanciero,
-      avanceFinancieroPct:       parseFloat(((acumFinanciero / p1AmountIVA) * 100).toFixed(4)),
+      avanceFinancieroPct:       parseFloat(((acumFinanciero / (p1AmountIVA / 1.16)) * 100).toFixed(4)),
       description:    r.description,
       observations:   '',
       photos:         [],
@@ -513,8 +549,12 @@ async function main() {
     createdAt:  new Date().toISOString(),
   });
 
-  // Schedule P2 — skeleton (no amounts yet — project just started Jun 4)
-  const skelP2 = buildSimpleSchedule('2026-06-04', '2027-01-14');
+  // Schedule P2 — S-curve over the contract (demo data)
+  const p2SinIVAsched = parseFloat((p2AmountIVA / 1.16).toFixed(2));
+  const skelP2 = buildSchedule(
+    distributeSCurve(buildSimpleSchedule('2026-06-04', '2027-01-14'), p2SinIVAsched),
+    p2SinIVAsched
+  );
   await batchWrite(skelP2.map((r) => ({
     PutRequest: {
       Item: {
@@ -522,7 +562,6 @@ async function main() {
         SK: `SCHED#W${String(r.weekNo).padStart(3, '0')}`,
         frontId: f2id,
         ...r,
-        progParcialPct: 0, progAcumulado: 0, progAcumuladoPct: 0,
       },
     },
   })));
@@ -542,9 +581,25 @@ async function main() {
     { weekNo: 11, reportDate: '2026-08-17', parcialFisico: 387000,  description: 'Supervisión TSD km 210–228. Pruebas de resistencia al deslizamiento. Señalamiento horizontal en zona de trabajo.' },
   ];
 
-  let acumFisicoP2 = 0;
+  // The weekly figures above are illustrative. Executed work is measured SIN IVA,
+  // so the cumulative total must never exceed the contract sin IVA. Rescale the
+  // series so it lands at ~85% completion, which is realistic for week 11 of a
+  // contract that runs to January.
+  const p2SinIVA = parseFloat((p2AmountIVA / 1.16).toFixed(2));
+  const p2RawTotal = reportsP2.reduce((s, r) => s + r.parcialFisico, 0);
+  const p2Scale = (p2SinIVA * 0.85) / p2RawTotal;
   for (const r of reportsP2) {
+    r.parcialFisico = Math.round(r.parcialFisico * p2Scale);
+  }
+
+  let acumFisicoP2 = 0;
+  let acumFinancieroP2 = 0;
+  for (const r of reportsP2) {
+    const schedRowP2 = skelP2.find((s) => s.weekNo === r.weekNo) ?? skelP2[0];
     acumFisicoP2 = parseFloat((acumFisicoP2 + r.parcialFisico).toFixed(2));
+    // Billing trails execution: work done in week N is invoiced ~3 weeks later.
+    const facturadoP2 = reportsP2.find((x) => x.weekNo === r.weekNo - 3)?.parcialFisico ?? 0;
+    acumFinancieroP2 = parseFloat((acumFinancieroP2 + facturadoP2).toFixed(2));
     const rid = randomUUID();
     await put({
       PK: `FRONT#${f2id}`,
@@ -553,15 +608,15 @@ async function main() {
       id: rid, frontId: f2id,
       weekNo:               r.weekNo,
       reportDate:           r.reportDate,
-      progParcialScheduled: 0,
-      progAcumScheduled:    0,
-      progPctScheduled:     0,
+      progParcialScheduled: schedRowP2.progParcial,
+      progAcumScheduled:    schedRowP2.progAcumulado,
+      progPctScheduled:     schedRowP2.progAcumuladoPct,
       avanceFisicoReal:         r.parcialFisico,
       avanceFisicoRealAcum:     acumFisicoP2,
-      avanceFisicoPct:          parseFloat(((acumFisicoP2 / p2AmountIVA) * 100).toFixed(4)),
-      avanceFinancieroReal:     0,
-      avanceFinancieroRealAcum: 0,
-      avanceFinancieroPct:      0,
+      avanceFisicoPct:          parseFloat(((acumFisicoP2 / p2SinIVA) * 100).toFixed(4)),
+      avanceFinancieroReal:     facturadoP2,
+      avanceFinancieroRealAcum: acumFinancieroP2,
+      avanceFinancieroPct:      parseFloat(((acumFinancieroP2 / p2SinIVA) * 100).toFixed(4)),
       description:    r.description,
       observations:   '',
       photos:         [],
@@ -679,8 +734,12 @@ async function main() {
     createdAt:  new Date().toISOString(),
   });
 
-  // Schedule P3 — skeleton
-  const skelP3 = buildSimpleSchedule('2026-04-01', '2026-10-31');
+  // Schedule P3 — S-curve over the contract (demo data)
+  const p3SinIVAsched = parseFloat((p3AmountIVA / 1.16).toFixed(2));
+  const skelP3 = buildSchedule(
+    distributeSCurve(buildSimpleSchedule('2026-04-01', '2026-10-31'), p3SinIVAsched),
+    p3SinIVAsched
+  );
   await batchWrite(skelP3.map((r) => ({
     PutRequest: {
       Item: {
@@ -688,7 +747,6 @@ async function main() {
         SK: `SCHED#W${String(r.weekNo).padStart(3, '0')}`,
         frontId: f3id,
         ...r,
-        progParcialPct: 0, progAcumulado: 0, progAcumuladoPct: 0,
       },
     },
   })));
@@ -716,9 +774,23 @@ async function main() {
     { weekNo: 19, reportDate: '2026-08-10', parcialFisico: 197000, description: 'Elaboración de expediente final de inspección. Entrega de dictámenes preliminares al cliente.' },
   ];
 
-  let acumFisicoP3 = 0;
+  // Same rescale as P2: keep the cumulative total below the contract sin IVA.
+  // 19 weeks into a contract ending Oct 31 → ~88% is a realistic figure.
+  const p3SinIVA = parseFloat((p3AmountIVA / 1.16).toFixed(2));
+  const p3RawTotal = reportsP3.reduce((s, r) => s + r.parcialFisico, 0);
+  const p3Scale = (p3SinIVA * 0.88) / p3RawTotal;
   for (const r of reportsP3) {
+    r.parcialFisico = Math.round(r.parcialFisico * p3Scale);
+  }
+
+  let acumFisicoP3 = 0;
+  let acumFinancieroP3 = 0;
+  for (const r of reportsP3) {
+    const schedRowP3 = skelP3.find((s) => s.weekNo === r.weekNo) ?? skelP3[0];
     acumFisicoP3 = parseFloat((acumFisicoP3 + r.parcialFisico).toFixed(2));
+    // Billing trails execution by ~3 weeks.
+    const facturadoP3 = reportsP3.find((x) => x.weekNo === r.weekNo - 3)?.parcialFisico ?? 0;
+    acumFinancieroP3 = parseFloat((acumFinancieroP3 + facturadoP3).toFixed(2));
     const rid = randomUUID();
     await put({
       PK: `FRONT#${f3id}`,
@@ -727,15 +799,15 @@ async function main() {
       id: rid, frontId: f3id,
       weekNo:               r.weekNo,
       reportDate:           r.reportDate,
-      progParcialScheduled: 0,
-      progAcumScheduled:    0,
-      progPctScheduled:     0,
+      progParcialScheduled: schedRowP3.progParcial,
+      progAcumScheduled:    schedRowP3.progAcumulado,
+      progPctScheduled:     schedRowP3.progAcumuladoPct,
       avanceFisicoReal:         r.parcialFisico,
       avanceFisicoRealAcum:     acumFisicoP3,
-      avanceFisicoPct:          parseFloat(((acumFisicoP3 / p3AmountIVA) * 100).toFixed(4)),
-      avanceFinancieroReal:     0,
-      avanceFinancieroRealAcum: 0,
-      avanceFinancieroPct:      0,
+      avanceFisicoPct:          parseFloat(((acumFisicoP3 / p3SinIVA) * 100).toFixed(4)),
+      avanceFinancieroReal:     facturadoP3,
+      avanceFinancieroRealAcum: acumFinancieroP3,
+      avanceFinancieroPct:      parseFloat(((acumFinancieroP3 / p3SinIVA) * 100).toFixed(4)),
       description:    r.description,
       observations:   '',
       photos:         [],

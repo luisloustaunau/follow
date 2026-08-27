@@ -16,6 +16,9 @@ import {
   notFound,
 } from '../lib/response.js';
 
+/** IVA rate applied to contract amounts (16% in Mexico). */
+const IVA_RATE = 1.16;
+
 /**
  * Reports endpoint — heavy lifting moved server-side so the supervisor's
  * form only collects:
@@ -250,6 +253,15 @@ export async function handler(
   }
 }
 
+/**
+ * Returns the contract amount to use as the denominator for progress %.
+ *
+ * IMPORTANT: `avanceFisicoReal` / `avanceFinancieroReal` are executed work,
+ * which is always measured WITHOUT IVA. Contract amounts (both on the front
+ * and on the project) are stored WITH IVA, so they must be converted to their
+ * sin-IVA base before dividing — otherwise the percentage mixes two different
+ * bases and understates real progress by ~14%.
+ */
 async function getFrontTotalAmount(frontId: string): Promise<number> {
   // Scan GSI1 for the front, then pull the project meta if needed.
   const frontScan = await dynamo.send(
@@ -262,14 +274,18 @@ async function getFrontTotalAmount(frontId: string): Promise<number> {
   );
   const front = (frontScan.Items ?? []).find((f) => f.id === frontId);
   if (!front) return 0;
-  if (Number(front.amount ?? 0) > 0) return Number(front.amount);
+
+  const frontAmount = Number(front.amount ?? 0);
+  if (frontAmount > 0) return Number((frontAmount / IVA_RATE).toFixed(2));
+
   const proj = await dynamo.send(
     new GetCommand({
       TableName: TABLE,
       Key: { PK: `PROJECT#${front.projectId}`, SK: '#META' },
     })
   );
-  return Number(proj.Item?.amountWithIVA ?? 0);
+  const withIVA = Number(proj.Item?.amountWithIVA ?? 0);
+  return withIVA > 0 ? Number((withIVA / IVA_RATE).toFixed(2)) : 0;
 }
 
 function nearestScheduleRow(

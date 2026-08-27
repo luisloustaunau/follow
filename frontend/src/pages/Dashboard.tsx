@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getProjects, updateProjectStatus } from '../lib/api';
 import type { Project, ProjectStatus } from '../types';
-import { Building2, ChevronRight, Plus, Search } from 'lucide-react';
+import { Building2, ChevronRight, Plus, Search, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 function fmt(n: number) {
@@ -211,7 +211,12 @@ export function Dashboard() {
                 <div className="mb-3">
                   <div className="flex justify-between text-xs mb-1">
                     <span className="text-gray-400">Avance físico</span>
-                    <span className="font-semibold" style={{ color: pct >= 100 ? '#15803d' : pct > 0 ? '#0369a1' : '#9ca3af' }}>
+                    <span
+                      className="font-semibold flex items-center gap-1"
+                      style={{ color: pct > 100 ? '#b45309' : pct >= 100 ? '#15803d' : pct > 0 ? '#0369a1' : '#9ca3af' }}
+                      title={pct > 100 ? 'El avance acumulado supera el monto del contrato. Revisa los reportes semanales.' : undefined}
+                    >
+                      {pct > 100 && <AlertTriangle size={11} />}
                       {pct.toFixed(1)}%
                     </span>
                   </div>
@@ -219,10 +224,15 @@ export function Dashboard() {
                     <div style={{
                       height: '100%', borderRadius: 999,
                       width: `${Math.min(pct, 100)}%`,
-                      background: pct >= 100 ? '#22c55e' : pct > 0 ? '#0ea5e9' : '#e5e7eb',
+                      background: pct > 100 ? '#f59e0b' : pct >= 100 ? '#22c55e' : pct > 0 ? '#0ea5e9' : '#e5e7eb',
                       transition: 'width 0.4s',
                     }} />
                   </div>
+                  {pct > 100 && (
+                    <p className="text-[11px] text-amber-700 mt-1 leading-tight">
+                      Supera el monto contratado — revisa los reportes
+                    </p>
+                  )}
                 </div>
 
                 {/* Dates + amount */}

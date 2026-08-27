@@ -18,6 +18,9 @@ import {
 } from '../lib/response.js';
 import { generateMonthProgram } from '../lib/schedule.js';
 
+/** IVA rate applied to contract amounts (16% in Mexico). */
+const IVA_RATE = 1.16;
+
 export async function handler(
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> {
@@ -44,7 +47,9 @@ export async function handler(
       );
       const projects = result.Items ?? [];
 
-      // For each project, find its fronts, then pull the latest report to get avanceFisico
+      // For each project, find its fronts, then pull the latest report to get avanceFisico.
+      // The % is recomputed here from the accumulated amount so that records written
+      // before the sin-IVA fix still display correctly.
       const enriched = await Promise.all(
         projects.map(async (p) => {
           try {
@@ -54,7 +59,15 @@ export async function handler(
               ExpressionAttributeValues: { ':pk': `PROJECT#${p.id}`, ':prefix': 'FRONT#' },
             }));
             const fronts = frontsRes.Items ?? [];
-            let avanceFisico = 0;
+
+            // Executed work is measured sin IVA, so the contract must be too.
+            const amountWithIVA = Number(p.amountWithIVA ?? 0);
+            const projectSinIVA = amountWithIVA > 0 ? amountWithIVA / IVA_RATE : 0;
+
+            let acumTotal = 0;
+            let frontsBase = 0;
+            let fallbackPct = 0;
+
             for (const front of fronts) {
               const reportsRes = await dynamo.send(new QueryCommand({
                 TableName: TABLE,
@@ -64,8 +77,19 @@ export async function handler(
                 Limit: 1,
               }));
               const latest = reportsRes.Items?.[0];
-              if (latest) avanceFisico = Math.max(avanceFisico, Number(latest.avanceFisicoPct ?? 0));
+              if (!latest) continue;
+              acumTotal += Number(latest.avanceFisicoRealAcum ?? 0);
+              // Front amounts are stored con IVA, same as the project.
+              frontsBase += Number(front.amount ?? 0) / IVA_RATE;
+              fallbackPct = Math.max(fallbackPct, Number(latest.avanceFisicoPct ?? 0));
             }
+
+            // Prefer the sum of front amounts; fall back to the project total.
+            // Both are already converted to their sin-IVA base.
+            const base = frontsBase > 0 ? frontsBase : projectSinIVA;
+            const avanceFisico =
+              base > 0 ? (acumTotal / base) * 100 : fallbackPct;
+
             return { ...p, avanceFisico: parseFloat(avanceFisico.toFixed(2)) };
           } catch {
             return { ...p, avanceFisico: 0 };
