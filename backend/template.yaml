@@ -18,8 +18,15 @@ Globals:
 Parameters:
   JwtSecret:
     Type: String
-    Default: 'change-me-in-production'
+    # No Default on purpose: a fresh deploy must fail loudly rather than
+    # silently ship a guessable secret. Pass it with:
+    #   sam deploy --parameter-overrides JwtSecret=<valor>
+    # On stack UPDATES CloudFormation reuses the stored value automatically.
+    MinLength: 32
     NoEcho: true
+    Description: >-
+      Secreto para firmar los JWT. Mínimo 32 caracteres aleatorios.
+      Generar con: openssl rand -base64 48
   AllowedOrigin:
     Type: String
     Default: 'https://frontend-beta-two-86.vercel.app'

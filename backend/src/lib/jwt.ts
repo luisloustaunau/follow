@@ -1,6 +1,15 @@
 import jwt from 'jsonwebtoken';
 
-const SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-me';
+// Fail fast rather than silently signing tokens with a guessable fallback.
+// A weak secret means anyone can forge an `owner` token and bypass every
+// permission check in the system.
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
+  throw new Error(
+    'JWT_SECRET no está configurado o es demasiado corto (mínimo 32 caracteres).'
+  );
+}
+
+const SECRET: string = process.env.JWT_SECRET;
 
 export interface TokenPayload {
   userId: string;
