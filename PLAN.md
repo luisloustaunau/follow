@@ -30,6 +30,7 @@
 | — | Activar / desactivar cuenta (login bloqueado) | ✅ |
 | — | Restablecer contraseña desde la UI (admin define nueva) | ✅ |
 | — | Protecciones: no auto-desactivarse, no auto-degradarse, mínimo un owner activo | ✅ |
+| — | `JWT_SECRET` endurecido: sin default, mínimo 32 caracteres, falla en arranque | ✅ |
 
 ### 🎨 D-I — Diseño e Interfaz
 
@@ -452,8 +453,8 @@ API Gateway (us-east-1)
 |---|---|---|
 | `TABLE_NAME` | `anma-follow` | Auto-injected por SAM |
 | `BUCKET_NAME` | `anma-photos-439326782883` | Auto-injected por SAM |
-| `JWT_SECRET` | `[secreto]` | Cambiar antes de go-live real |
-| `ALLOWED_ORIGIN` | *(pendiente)* | Agregar en Sprint 1 |
+| `JWT_SECRET` | `[secreto en CloudFormation]` | `NoEcho`, mínimo 32 caracteres. Sin valor por defecto: un deploy nuevo falla si no se provee. La app aborta en arranque si falta o es corto |
+| `ALLOWED_ORIGIN` | `https://frontend-beta-two-86.vercel.app` | ✅ Configurado |
 
 ### Frontend (Vercel env vars)
 | Variable | Valor |
