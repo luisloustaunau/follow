@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   getEstimations,
@@ -16,6 +16,7 @@ import type {
 } from '../types';
 import { StatusBadge } from '../components/StatusBadge';
 import { MonthlyProgramEditor } from '../components/MonthlyProgramEditor';
+import { ChangeHistory } from '../components/ChangeHistory';
 import {
   ChevronRight,
   Save,
@@ -63,6 +64,9 @@ export function Estimations() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<Estimation>>({});
   const [saving, setSaving] = useState(false);
+
+  // FUN-009: which estimation has its change history expanded.
+  const [historyId, setHistoryId] = useState<string | null>(null);
 
   const [showNew, setShowNew] = useState(false);
   const [newEst, setNewEst] = useState({
@@ -344,7 +348,8 @@ export function Estimations() {
                   [...estimations]
                     .sort((a, b) => a.estimationNo.localeCompare(b.estimationNo))
                     .map((est) => (
-                      <tr key={est.id}>
+                      <Fragment key={est.id}>
+                      <tr>
                         <td style={{ fontWeight: 600 }}>{est.estimationNo}</td>
                         <td>{est.period}</td>
                         <td style={{ textAlign: 'right' }}>{fmt(est.amount)}</td>
@@ -428,23 +433,56 @@ export function Estimations() {
                                 <Save size={11} /> {saving ? '…' : 'Guardar'}
                               </button>
                             ) : (
-                              <button
-                                onClick={() => startEdit(est)}
-                                style={{
-                                  background: 'transparent',
-                                  border: 'none',
-                                  color: '#6b7280',
-                                  fontSize: 12,
-                                  fontWeight: 500,
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                Editar
-                              </button>
+                              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                                <button
+                                  onClick={() => startEdit(est)}
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#6b7280',
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setHistoryId(historyId === est.id ? null : est.id)
+                                  }
+                                  title="Ver quien modifico esta estimacion"
+                                  style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: est.history?.length ? '#2563eb' : '#9ca3af',
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Historial{est.history?.length ? ` (${est.history.length})` : ''}
+                                </button>
+                              </div>
                             )}
                           </td>
                         )}
                       </tr>
+                      {historyId === est.id && (
+                        <tr>
+                          <td
+                            colSpan={canEdit ? 10 : 9}
+                            style={{ background: '#f9fafb', padding: '4px 16px 16px' }}
+                          >
+                            <ChangeHistory
+                              history={est.history}
+                              lastEditedByName={est.lastEditedByName}
+                              lastEditedAt={est.lastEditedAt}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
                     ))
                 )}
               </tbody>

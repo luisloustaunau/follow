@@ -8,6 +8,7 @@ import {
   getViewUrl,
 } from '../lib/api';
 import type { WeeklyReport } from '../types';
+import { ChangeHistory } from '../components/ChangeHistory';
 import {
   ChevronRight,
   Download,
@@ -292,6 +293,12 @@ export function ReportDetail() {
           </tbody>
         </table>
       </div>
+
+      <ChangeHistory
+        history={report.history}
+        lastEditedByName={report.lastEditedByName}
+        lastEditedAt={report.lastEditedAt}
+      />
     </div>
   );
 }

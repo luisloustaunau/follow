@@ -17,6 +17,7 @@ import {
   badRequest,
 } from '../lib/response.js';
 import { generateMonthProgram } from '../lib/schedule.js';
+import { diffFields, auditFragment } from '../lib/audit.js';
 
 /** IVA rate applied to contract amounts (16% in Mexico). */
 const IVA_RATE = 1.16;
@@ -183,12 +184,32 @@ export async function handler(
       const allowed = ['PLANEACION', 'EN_PROGRESO', 'PAUSADO', 'COMPLETADO'];
       if (!body.status || !allowed.includes(body.status))
         return badRequest(`status must be one of: ${allowed.join(', ')}`);
+      // FUN-009: a project moving to PAUSADO/COMPLETADO is a contractual
+      // event, so record who made the call.
+      const currentProj = await dynamo.send(new GetCommand({
+        TableName: TABLE,
+        Key: { PK: `PROJECT#${projectId}`, SK: '#META' },
+      }));
+      const clauses = ['#s = :s'];
+      const values: Record<string, unknown> = { ':s': body.status };
+      const entries = diffFields(
+        { projectStatus: currentProj.Item?.status },
+        { projectStatus: body.status },
+        user,
+        ['projectStatus']
+      );
+      if (entries.length) {
+        const audit = auditFragment(entries, user);
+        clauses.push(...audit.clauses);
+        Object.assign(values, audit.values);
+      }
+
       await dynamo.send(new UpdateCommand({
         TableName: TABLE,
         Key: { PK: `PROJECT#${projectId}`, SK: '#META' },
-        UpdateExpression: 'SET #s = :s',
+        UpdateExpression: `SET ${clauses.join(', ')}`,
         ExpressionAttributeNames: { '#s': 'status' },
-        ExpressionAttributeValues: { ':s': body.status },
+        ExpressionAttributeValues: values,
       }));
       return ok({ id: projectId, status: body.status });
     }

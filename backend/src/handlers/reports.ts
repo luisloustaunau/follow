@@ -15,6 +15,7 @@ import {
   badRequest,
   notFound,
 } from '../lib/response.js';
+import { diffFields, auditFragment } from '../lib/audit.js';
 
 /** IVA rate applied to contract amounts (16% in Mexico). */
 const IVA_RATE = 1.16;
@@ -179,6 +180,15 @@ export async function handler(
       const exprVals: Record<string, unknown> = {};
       const exprNames: Record<string, string> = {};
 
+      // FUN-009: snapshot the stored report so we can diff against it.
+      const existingResp = await dynamo.send(
+        new GetCommand({
+          TableName: TABLE,
+          Key: { PK: `FRONT#${frontId}`, SK: `REPORT#${body.reportDate}` },
+        })
+      );
+      const existing = existingResp.Item ?? {};
+
       // Editable text fields
       ['description', 'observations'].forEach((k) => {
         if (body[k] !== undefined) {
@@ -232,6 +242,27 @@ export async function handler(
         });
       }
       if (!updateExpr.length) return badRequest('Nothing to update');
+
+      // Compare the semantic fields the supervisor edits. `parcialFisico` /
+      // `parcialFinanciero` arrive under those names but are stored as
+      // avanceFisicoReal / avanceFinancieroReal, so map before diffing.
+      const auditSource = {
+        ...existing,
+        parcialFisico: existing.avanceFisicoReal,
+        parcialFinanciero: existing.avanceFinancieroReal,
+      };
+      const entries = diffFields(auditSource, body, user, [
+        'parcialFisico',
+        'parcialFinanciero',
+        'description',
+        'observations',
+        'photos',
+      ]);
+      if (entries.length) {
+        const audit = auditFragment(entries, user);
+        updateExpr.push(...audit.clauses);
+        Object.assign(exprVals, audit.values);
+      }
 
       await dynamo.send(
         new UpdateCommand({

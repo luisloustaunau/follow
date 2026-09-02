@@ -34,6 +34,24 @@ export interface Front {
   amount?: number;
 }
 
+export interface AuditEntry {
+  at: string;
+  by: string;
+  byName: string;
+  field: string;
+  label: string;
+  from: unknown;
+  to: unknown;
+}
+
+/** Fields added by the audit trail (FUN-009) to editable records. */
+export interface Audited {
+  history?: AuditEntry[];
+  lastEditedBy?: string;
+  lastEditedByName?: string;
+  lastEditedAt?: string;
+}
+
 export interface WeeklyReport {
   id: string;
   frontId: string;
@@ -54,6 +72,10 @@ export interface WeeklyReport {
   submittedBy?: string;
   submittedByName?: string;
   submittedAt?: string;
+  history?: AuditEntry[];
+  lastEditedBy?: string;
+  lastEditedByName?: string;
+  lastEditedAt?: string;
 }
 
 export type EstimationStatus =
@@ -78,6 +100,10 @@ export interface Estimation {
   status: EstimationStatus;
   submittedDate?: string;
   paidDate?: string;
+  history?: AuditEntry[];
+  lastEditedBy?: string;
+  lastEditedByName?: string;
+  lastEditedAt?: string;
 }
 
 export interface ScheduleRow {

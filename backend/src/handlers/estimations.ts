@@ -17,6 +17,7 @@ import {
   notFound,
 } from '../lib/response.js';
 import { generateMonthProgram, MonthProgramRow } from '../lib/schedule.js';
+import { diffFields, auditFragment } from '../lib/audit.js';
 
 export async function handler(
   event: APIGatewayProxyEvent
@@ -221,6 +222,15 @@ export async function handler(
         }
       }
       if (!updateExpr.length) return badRequest('Nothing to update');
+
+      // FUN-009: record what actually changed, and who changed it.
+      const audited = fields.map((f) => f.key);
+      const entries = diffFields(target, body, user, audited);
+      if (entries.length) {
+        const audit = auditFragment(entries, user);
+        updateExpr.push(...audit.clauses);
+        Object.assign(exprVals, audit.values);
+      }
 
       await dynamo.send(
         new UpdateCommand({
