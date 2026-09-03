@@ -51,8 +51,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck
-        run: npx tsc --noEmit
+      # `tsc` (not `tsc --noEmit`): template.yaml points the handlers at
+      # dist/handlers/*.handler, so the JS must actually be emitted here.
+      # --noEmit only typechecks and would ship a package with no code,
+      # which fails at runtime with "Cannot find module".
+      - name: Compile TypeScript
+        run: npm run build
 
       - name: Build
         run: sam build
