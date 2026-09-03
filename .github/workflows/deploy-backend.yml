@@ -1,0 +1,63 @@
+name: Deploy backend
+
+# Vercel already redeploys the frontend on push. This does the same for the
+# Lambda stack so the two halves never drift apart.
+on:
+  push:
+    branches: [main]
+    # Don't burn a deploy when only the frontend or docs changed.
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch: # lets you re-deploy by hand from the Actions tab
+
+# Required for GitHub to request an OIDC token from AWS. No long-lived
+# access keys are stored anywhere.
+permissions:
+  id-token: write
+  contents: read
+
+# If you push twice quickly, cancel the older run rather than racing two
+# CloudFormation updates against the same stack.
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: sam build
+
+      # No --parameter-overrides: SAM reuses the JwtSecret and AllowedOrigin
+      # already stored in the stack, so the secret never touches CI.
+      - name: Deploy
+        run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
