@@ -57,7 +57,18 @@ jobs:
       - name: Build
         run: sam build
 
-      # No --parameter-overrides: SAM reuses the JwtSecret and AllowedOrigin
-      # already stored in the stack, so the secret never touches CI.
+      # samconfig.toml is gitignored, so CI has no defaults to read: the
+      # stack name, region and capabilities are passed explicitly here.
+      #
+      # No --parameter-overrides on purpose: SAM reuses the JwtSecret and
+      # AllowedOrigin already stored in the stack, so the secret never
+      # touches CI logs or GitHub secrets.
       - name: Deploy
-        run: sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
+        run: |
+          sam deploy \
+            --stack-name anma-follow \
+            --region us-east-1 \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset
